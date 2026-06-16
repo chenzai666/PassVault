@@ -464,11 +464,11 @@
 }
 
 .standalone-brand {
-  @apply mb-3 inline-flex items-center gap-3.5;
+  @apply mb-3 flex items-center gap-3.5;
 }
 
 .standalone-brand-outside {
-  @apply mb-0.5 w-full justify-center;
+  @apply mb-0.5 flex w-full justify-center;
 }
 
 .standalone-brand-logo {
@@ -486,7 +486,8 @@
 }
 
 .standalone-title {
-  @apply m-0 text-center text-3xl font-bold leading-tight tracking-normal;
+  @apply m-0 text-center text-[1.9rem] font-extrabold leading-tight tracking-tight;
+  color: var(--ink);
 }
 
 .standalone-title-row {

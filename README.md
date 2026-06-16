@@ -11,6 +11,7 @@
 <p align="center">
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-LGPL--3.0-2ea44f" alt="License: LGPL-3.0" /></a>
   <a href="https://github.com/chenzai666/PassVault/releases/latest"><img src="https://img.shields.io/github/v/release/chenzai666/PassVault?display_name=tag" alt="Latest Release" /></a>
+  <a href="https://hub.docker.com/r/chenzai666/passvault"><img src="https://img.shields.io/docker/pulls/chenzai666/passvault" alt="Docker Pulls" /></a>
 </p>
 
 > **免责声明**  
@@ -51,19 +52,44 @@
 
 ## Docker 部署
 
-### 快速启动
+### 方式一：直接拉取镜像（推荐）
 
 ```bash
-git clone https://github.com/chenzai666/PassVault.git
-cd PassVault
-
-# 复制环境变量模板
+# 创建数据目录和配置文件
+mkdir passvault && cd passvault
+curl -O https://raw.githubusercontent.com/chenzai666/PassVault/main/.env.example
 cp .env.example .env
 
 # 编辑 .env，至少设置 JWT_SECRET（32 位以上随机字符串）
 vi .env
 
-# 构建并启动
+# 创建 docker-compose.yml
+cat > docker-compose.yml <<'EOF'
+services:
+  passvault:
+    image: chenzai666/passvault:latest
+    ports:
+      - "${PORT:-8787}:8787"
+    volumes:
+      - passvault-data:/app/.wrangler/state
+    env_file:
+      - .env
+    restart: unless-stopped
+
+volumes:
+  passvault-data:
+EOF
+
+docker compose up -d
+```
+
+### 方式二：从源码构建
+
+```bash
+git clone https://github.com/chenzai666/PassVault.git
+cd PassVault
+cp .env.example .env
+vi .env
 docker compose up -d
 ```
 

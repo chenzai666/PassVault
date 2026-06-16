@@ -687,7 +687,7 @@ export async function importBackupArchiveBytes(
   actorUserId: string,
   replaceExisting: boolean,
   progress?: BackupRestoreProgressReporter,
-  fileName: string = 'nodewarden_backup.zip'
+  fileName: string = 'passvault_backup.zip'
 ): Promise<BackupImportExecutionResult> {
   const parsed = parseBackupArchive(archiveBytes);
   validateBackupPayloadContents(parsed.payload, parsed.files);
@@ -831,7 +831,7 @@ export async function importRemoteBackupArchiveBytes(
   replaceExisting: boolean,
   source: RemoteAttachmentSource,
   progress?: BackupRestoreProgressReporter,
-  fileName: string = 'nodewarden_backup.zip'
+  fileName: string = 'passvault_backup.zip'
 ): Promise<BackupImportExecutionResult> {
   const parsed = parseBackupArchive(archiveBytes, { allowExternalAttachmentBlobs: true });
   const preparedRemote = await prepareRemoteAttachmentPayload(env, parsed.payload, parsed.files, source);

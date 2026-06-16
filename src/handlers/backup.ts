@@ -1155,7 +1155,7 @@ export async function handleAdminImportBackup(request: Request, env: Env, actorU
     if (!checksumOk && !allowChecksumMismatch) {
       return errorResponse('Backup file checksum does not match its filename', 400);
     }
-    const imported = await runImportAndAudit(env, request, actorUser, archiveBytes, fileName || 'nodewarden_backup.zip', replaceExisting, {
+    const imported = await runImportAndAudit(env, request, actorUser, archiveBytes, fileName || 'passvault_backup.zip', replaceExisting, {
       trigger: 'local',
       bytes: archiveBytes.byteLength,
       checksumMismatchAccepted: !checksumOk,

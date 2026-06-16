@@ -13,8 +13,8 @@ export const EXPORT_FORMATS = [
   { id: 'bitwarden_encrypted_json', label: 'Bitwarden (encrypted vault as json)' },
   { id: 'bitwarden_json_zip', label: 'Bitwarden (vault + attachments as zip)' },
   { id: 'bitwarden_encrypted_json_zip', label: 'Bitwarden (encrypted vault + attachments as zip)' },
-  { id: 'nodewarden_json', label: 'NodeWarden (vault + attachments as json)' },
-  { id: 'nodewarden_encrypted_json', label: 'NodeWarden (encrypted vault + attachments as json)' },
+  { id: 'nodewarden_json', label: 'PassVault (vault + attachments as json)' },
+  { id: 'nodewarden_encrypted_json', label: 'PassVault (encrypted vault + attachments as json)' },
 ] as const;
 
 export type ExportFormatId = (typeof EXPORT_FORMATS)[number]['id'];
@@ -699,7 +699,7 @@ export function buildExportFileName(format: ExportFormatId, zipEncrypted = false
     format === 'nodewarden_encrypted_json'
   ) {
     if (format === 'bitwarden_csv') return `bitwarden_export_${stamp}.csv`;
-    if (format.startsWith('nodewarden_')) return `nodewarden_export_${stamp}.json`;
+    if (format.startsWith('nodewarden_')) return `passvault_export_${stamp}.json`;
     return `bitwarden_export_${stamp}.json`;
   }
   if (format === 'bitwarden_json_zip' || format === 'bitwarden_encrypted_json_zip') {

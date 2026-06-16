@@ -153,13 +153,13 @@ interface BackupExportManifest {
 const BACKUP_FILE_HASH_PREFIX_LENGTH = 5;
 
 function extractBackupTimestampFromFileName(fileName: string): string | null {
-  const match = String(fileName || '').match(/nodewarden_backup_(\d{8})_(\d{6})(?:_[0-9a-f]{5})?\.zip$/i);
+  const match = String(fileName || '').match(/passvault_backup_(\d{8})_(\d{6})(?:_[0-9a-f]{5})?\.zip$/i);
   if (!match) return null;
   return `${match[1]}_${match[2]}`;
 }
 
 function buildBackupFileName(timestamp: string, checksumPrefix: string): string {
-  return `nodewarden_backup_${timestamp}_${checksumPrefix}.zip`;
+  return `passvault_backup_${timestamp}_${checksumPrefix}.zip`;
 }
 
 async function applyBackupFileIntegrityName(fileName: string, bytes: Uint8Array): Promise<string> {
@@ -181,7 +181,7 @@ export async function exportAdminBackup(
   if (!resp.ok) throw new Error(await parseErrorMessage(resp, t('txt_backup_export_failed')));
 
   const mimeType = String(resp.headers.get('Content-Type') || 'application/zip').trim() || 'application/zip';
-  const fileName = parseContentDispositionFileName(resp, 'nodewarden_backup.zip');
+  const fileName = parseContentDispositionFileName(resp, 'passvault_backup.zip');
   const bytes = new Uint8Array(await resp.arrayBuffer());
   return { fileName, mimeType, bytes };
 }
@@ -359,7 +359,7 @@ export async function downloadRemoteBackup(
   const resp = await authedFetch(`/api/admin/backup/remote/download?${params.toString()}`, { method: 'GET' });
   if (!resp.ok) throw new Error(await parseErrorMessage(resp, t('txt_backup_remote_download_failed')));
   const mimeType = String(resp.headers.get('Content-Type') || 'application/zip').trim() || 'application/zip';
-  const fileName = parseContentDispositionFileName(resp, 'nodewarden_remote_backup.zip');
+  const fileName = parseContentDispositionFileName(resp, 'passvault_remote_backup.zip');
   const bytes = await readResponseBytesWithProgress(resp, (progress) => onProgress?.(progress.percent));
   return { fileName, mimeType, bytes };
 }
@@ -439,7 +439,7 @@ export async function importAdminBackup(
   allowChecksumMismatch: boolean = false
 ): Promise<AdminBackupImportResponse> {
   const formData = new FormData();
-  formData.set('file', file, file.name || 'nodewarden_backup.zip');
+  formData.set('file', file, file.name || 'passvault_backup.zip');
   if (replaceExisting) {
     formData.set('replaceExisting', '1');
   }

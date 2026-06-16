@@ -16,7 +16,7 @@ export interface PersistedRemoteBrowserState {
   selectedDestinationId: string | null;
 }
 
-export const REMOTE_BROWSER_STORAGE_KEY = 'nodewarden.backup.remote-browser.v1';
+export const REMOTE_BROWSER_STORAGE_KEY = 'passvault.backup.remote-browser.v1';
 export const REMOTE_BROWSER_ITEMS_PER_PAGE = 10;
 
 export const COMMON_TIME_ZONES = [

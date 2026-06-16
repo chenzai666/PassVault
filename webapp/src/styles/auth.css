@@ -473,14 +473,14 @@
 
 .standalone-brand-logo {
   @apply h-14 w-[70px] flex-shrink-0 object-contain;
-  filter: drop-shadow(0 8px 18px rgba(43, 102, 217, 0.22));
+  filter: drop-shadow(0 8px 18px rgba(194, 107, 43, 0.28));
 }
 
 .standalone-brand-wordmark {
   @apply block max-w-full;
-  width: clamp(200px, 30vw, 340px);
-  aspect-ratio: 862 / 102;
-  background: #116ff9;
+  width: clamp(160px, 28vw, 280px);
+  aspect-ratio: 240 / 42;
+  background: var(--primary);
   mask: url('/nodewarden-wordmark.svg') center / contain no-repeat;
   -webkit-mask: url('/nodewarden-wordmark.svg') center / contain no-repeat;
 }

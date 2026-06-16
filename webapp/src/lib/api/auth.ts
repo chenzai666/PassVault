@@ -12,11 +12,11 @@ import type { AccountPasskeyAssertion, AccountPasskeyPrfKeySet } from '../accoun
 import { recordNodeWardenReachable, recordNodeWardenUnreachable } from '../network-status';
 import { parseJson, type AuthedFetch, type SessionSetter } from './shared';
 
-const SESSION_KEY = 'nodewarden.web.session.v4';
-const PROFILE_SNAPSHOT_KEY = 'nodewarden.web.profile-snapshot.v1';
-const DEVICE_IDENTIFIER_KEY = 'nodewarden.web.device.identifier.v1';
-const TOTP_REMEMBER_TOKEN_KEY = 'nodewarden.web.totp.remember-token.v1';
-const WEB_SESSION_HEADER = 'X-NodeWarden-Web-Session';
+const SESSION_KEY = 'passvault.web.session.v4';
+const PROFILE_SNAPSHOT_KEY = 'passvault.web.profile-snapshot.v1';
+const DEVICE_IDENTIFIER_KEY = 'passvault.web.device.identifier.v1';
+const TOTP_REMEMBER_TOKEN_KEY = 'passvault.web.totp.remember-token.v1';
+const WEB_SESSION_HEADER = 'X-PassVault-Web-Session';
 
 export interface PreloginResult {
   hash: string;

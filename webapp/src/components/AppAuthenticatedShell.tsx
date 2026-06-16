@@ -30,7 +30,7 @@ interface AppAuthenticatedShellProps {
 
 type NavLayoutMode = 'flat' | 'grouped-expanded' | 'grouped-smart';
 
-const NAV_LAYOUT_STORAGE_KEY = 'nodewarden.navLayoutMode';
+const NAV_LAYOUT_STORAGE_KEY = 'passvault.navLayoutMode';
 
 function readNavLayoutMode(): NavLayoutMode {
   if (typeof window === 'undefined') return 'flat';
@@ -63,12 +63,24 @@ export default function AppAuthenticatedShell(props: AppAuthenticatedShellProps)
   const [navLayoutMode, setNavLayoutMode] = useState<NavLayoutMode>(readNavLayoutMode);
   const [navLayoutPickerOpen, setNavLayoutPickerOpen] = useState(false);
   const navLayoutPickerRef = useRef<HTMLDivElement | null>(null);
+  const sideNavMainRef = useRef<HTMLDivElement | null>(null);
   const [expandedGroups, setExpandedGroups] = useState({
     vault: true,
     settings: false,
     data: false,
     management: false,
   });
+
+  useEffect(() => {
+    setExpandedGroups((prev) => {
+      const next = { ...prev };
+      if (vaultActive) next.vault = true;
+      if (settingsActive) next.settings = true;
+      if (dataActive) next.data = true;
+      if (managementActive) next.management = true;
+      return next;
+    });
+  }, [vaultActive, settingsActive, dataActive, managementActive]);
 
   useEffect(() => {
     const onPointerDown = (event: Event) => {
@@ -90,6 +102,12 @@ export default function AppAuthenticatedShell(props: AppAuthenticatedShellProps)
   }, [navLayoutPickerOpen]);
 
   function setNavMode(mode: NavLayoutMode): void {
+    const el = sideNavMainRef.current;
+    if (el) {
+      el.scrollTop = 0;
+      el.classList.add('mode-switching');
+      setTimeout(() => el.classList.remove('mode-switching'), 50);
+    }
     setNavLayoutMode(mode);
     setNavLayoutPickerOpen(false);
     try {
@@ -103,9 +121,9 @@ export default function AppAuthenticatedShell(props: AppAuthenticatedShellProps)
     setExpandedGroups((current) => ({ ...current, [group]: !current[group] }));
   }
 
-  function groupOpen(group: keyof typeof expandedGroups, active: boolean): boolean {
+  function groupOpen(group: keyof typeof expandedGroups, _active: boolean): boolean {
     if (navLayoutMode === 'grouped-expanded') return true;
-    return expandedGroups[group] || active;
+    return expandedGroups[group];
   }
 
   function renderSideLink(href: string, active: boolean, icon: ComponentChildren, label: string) {
@@ -237,8 +255,8 @@ export default function AppAuthenticatedShell(props: AppAuthenticatedShellProps)
       <div className="app-shell">
         <header className="topbar">
           <div className="brand">
-            <img src="/nodewarden-logo.svg" alt="NodeWarden logo" className="brand-logo" />
-            <span className="brand-wordmark" role="img" aria-label="NodeWarden" />
+            <img src="/nodewarden-logo.svg" alt="PassVault logo" className="brand-logo" />
+            <span className="brand-wordmark" role="img" aria-label="PassVault" />
             <span className="mobile-page-title">{props.currentPageTitle}</span>
           </div>
           <div className="topbar-actions">
@@ -276,7 +294,7 @@ export default function AppAuthenticatedShell(props: AppAuthenticatedShellProps)
 
         <div className="app-main">
           <aside className="app-side">
-            <div className="side-nav-main">
+            <div className="side-nav-main" ref={sideNavMainRef}>
               {navLayoutMode === 'flat' ? flatNav : groupedNav}
             </div>
             <div className="nav-layout-control" ref={navLayoutPickerRef}>

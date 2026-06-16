@@ -1,0 +1,13 @@
+services:
+  passvault:
+    build: .
+    ports:
+      - "${PORT:-8787}:8787"
+    volumes:
+      - passvault-data:/app/.wrangler/state
+    env_file:
+      - .env
+    restart: unless-stopped
+
+volumes:
+  passvault-data:

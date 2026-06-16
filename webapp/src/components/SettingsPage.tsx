@@ -65,13 +65,13 @@ function randomBase32Secret(length: number): string {
 }
 
 function buildOtpUri(email: string, secret: string): string {
-  const issuer = 'NodeWarden';
+  const issuer = 'PassVault';
   return `otpauth://totp/${encodeURIComponent(`${issuer}:${email}`)}?secret=${encodeURIComponent(secret)}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
 }
 
 function clearLegacyTotpSetupSecrets(): void {
   if (typeof window === 'undefined') return;
-  const prefix = 'nodewarden.totp.secret.';
+  const prefix = 'passvault.totp.secret.';
   const keys: string[] = [];
   for (let index = 0; index < window.localStorage.length; index += 1) {
     const key = window.localStorage.key(index);

@@ -167,8 +167,8 @@ export default function PublicSendPage(props: PublicSendPageProps) {
     setError('');
     try {
       if (IS_DEMO_MODE) {
-        const bytes = new TextEncoder().encode('NodeWarden demo file Send.\nThis download is generated locally in demo mode.\n');
-        downloadBytesAsFile(bytes, sendData.decFileName || sendData.file?.fileName || 'nodewarden-demo-send.txt', 'application/octet-stream');
+        const bytes = new TextEncoder().encode('PassVault demo file Send.\nThis download is generated locally in demo mode.\n');
+        downloadBytesAsFile(bytes, sendData.decFileName || sendData.file?.fileName || 'passvault-demo-send.txt', 'application/octet-stream');
         return;
       }
       const url = await accessPublicSendFile(sendData.id, sendData.file.id, props.keyPart, password || undefined);

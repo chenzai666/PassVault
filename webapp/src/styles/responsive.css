@@ -15,7 +15,7 @@
   .app-side {
     @apply grid items-start gap-2;
     border-right: none;
-    border-bottom: 1px solid #d9e0ea;
+    border-bottom: 1px solid var(--line);
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-self: start;
     height: fit-content;
@@ -178,7 +178,7 @@
     min-height: var(--mobile-tabbar-height);
     padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
     border-top: 1px solid var(--line);
-    background: rgba(248, 251, 255, 0.92);
+    background: rgba(255, 253, 250, 0.92);
   }
 
   .mobile-tab {

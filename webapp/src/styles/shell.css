@@ -8,16 +8,16 @@
   border-color: var(--line);
   @apply rounded-3xl;
   box-shadow:
-    0 20px 60px rgba(15, 23, 42, 0.12),
-    0 8px 24px rgba(15, 23, 42, 0.08),
-    0 0 0 1px rgba(15, 23, 42, 0.04);
+    0 20px 60px rgba(52, 41, 31, 0.12),
+    0 8px 24px rgba(52, 41, 31, 0.08),
+    0 0 0 1px rgba(52, 41, 31, 0.04);
   transition: box-shadow var(--dur-medium) var(--ease-smooth);
 }
 
 .topbar {
   @apply flex h-[58px] items-center justify-between border-b px-[18px] text-slate-900 transition;
   border-color: var(--line-soft);
-  background: rgba(244, 248, 255, 0.78);
+  background: rgba(255, 253, 250, 0.88);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
@@ -28,11 +28,11 @@
 
 .brand-wordmark {
   @apply block max-w-full;
-  width: clamp(168px, 17vw, 224px);
-  aspect-ratio: 862 / 102;
-  background: #116ff9;
-  mask: url('/nodewarden-wordmark.svg') center / contain no-repeat;
-  -webkit-mask: url('/nodewarden-wordmark.svg') center / contain no-repeat;
+  width: clamp(120px, 13vw, 180px);
+  aspect-ratio: 240 / 42;
+  background: var(--primary);
+  mask: url('/nodewarden-wordmark.svg') left center / contain no-repeat;
+  -webkit-mask: url('/nodewarden-wordmark.svg') left center / contain no-repeat;
 }
 
 .mobile-page-title {
@@ -42,7 +42,7 @@
 
 .brand-logo {
   @apply h-[42px] w-[53px] object-contain;
-  filter: drop-shadow(0 10px 22px rgba(43, 102, 217, 0.22));
+  filter: drop-shadow(0 10px 22px rgba(194, 107, 43, 0.28));
 }
 
 .topbar-actions {
@@ -185,16 +185,24 @@
 
 .app-main {
   @apply grid min-h-0 flex-1;
-  grid-template-columns: 200px 1fr;
+  grid-template-columns: 220px 1fr;
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .app-side {
-  @apply flex flex-col gap-2 border-r px-3 py-4;
+  @apply flex flex-col gap-2 border-r px-3 py-4 min-h-0 overflow-x-hidden;
   border-color: var(--line-soft);
 }
 
 .side-nav-main {
   @apply flex min-h-0 flex-1 flex-col gap-2;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overflow-anchor: none;
+}
+
+.side-nav-main.mode-switching .side-subnav {
+  transition: none !important;
 }
 
 .side-link {
@@ -268,7 +276,6 @@
   opacity: 0;
   transform: translateY(-4px);
   transition:
-    grid-template-rows 220ms var(--ease-smooth),
     opacity 170ms var(--ease-smooth),
     transform 220ms var(--ease-out-soft);
 }
@@ -310,16 +317,16 @@
 
 .nav-layout-trigger {
   @apply flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border p-0 transition;
-  border-color: rgba(128, 152, 192, 0.18);
-  background: rgba(255, 255, 255, 0.46);
+  border-color: var(--line);
+  background: var(--panel-soft);
   color: var(--muted-strong);
 }
 
 .nav-layout-trigger:hover,
 .nav-layout-trigger.active {
-  border-color: rgba(37, 99, 235, 0.20);
-  background: #fff;
-  color: var(--primary-strong);
+  border-color: rgba(194, 107, 43, 0.30);
+  background: var(--panel);
+  color: var(--primary);
 }
 
 .nav-layout-menu {

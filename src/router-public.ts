@@ -41,8 +41,21 @@ export interface WebBootstrapResponse {
   registrationInviteRequired: boolean;
 }
 
+// Only trust reverse-proxy forwarded headers when wrangler binds to a private/loopback address.
+// When the Worker URL already has a public host, use it directly to avoid header-forgery risk.
+function getEffectiveOrigin(request: Request): string {
+  const url = new URL(request.url);
+  const isBoundToPrivate = /^(0\.0\.0\.0|localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(url.hostname);
+  if (!isBoundToPrivate) {
+    return url.origin;
+  }
+  const host = request.headers.get('X-Forwarded-Host') || request.headers.get('Host') || url.host;
+  const proto = request.headers.get('X-Forwarded-Proto') || url.protocol.replace(':', '');
+  return `${proto}://${host}`;
+}
+
 function isSameOriginWriteRequest(request: Request): boolean {
-  const targetOrigin = new URL(request.url).origin;
+  const targetOrigin = getEffectiveOrigin(request);
   const origin = request.headers.get('Origin');
   if (origin) {
     return origin === targetOrigin;

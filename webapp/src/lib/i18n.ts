@@ -14,7 +14,7 @@ export type Locale =
 
 import enMessages from './i18n/locales/en';
 
-const LOCALE_STORAGE_KEY = 'nodewarden.locale';
+const LOCALE_STORAGE_KEY = 'passvault.locale';
 
 type MessageTable = Record<string, string>;
 

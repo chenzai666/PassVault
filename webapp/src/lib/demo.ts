@@ -50,7 +50,7 @@ const DEMO_NOW = '2026-05-04T08:00:00.000Z';
 export const DEMO_PROFILE: Profile = {
   id: DEMO_USER_ID,
   email: 'demo@nodewarden.app',
-  name: 'NodeWarden Demo',
+  name: 'PassVault Demo',
   key: 'demo-profile-key',
   masterPasswordHint: 'In demo mode, any input unlocks the vault.',
   privateKey: null,
@@ -287,13 +287,13 @@ export const DEMO_CIPHERS: Cipher[] = [
     creationDate: '2026-03-22T09:00:00.000Z',
     revisionDate: DEMO_NOW,
     card: {
-      cardholderName: 'NodeWarden Demo',
+      cardholderName: 'PassVault Demo',
       number: '4111 1111 1111 1111',
       brand: 'Visa',
       expMonth: '12',
       expYear: '2030',
       code: '123',
-      decCardholderName: 'NodeWarden Demo',
+      decCardholderName: 'PassVault Demo',
       decNumber: '4111 1111 1111 1111',
       decBrand: 'Visa',
       decExpMonth: '12',
@@ -317,7 +317,7 @@ export const DEMO_CIPHERS: Cipher[] = [
       middleName: 'Morgan',
       lastName: 'Chen',
       username: 'alex.demo',
-      company: 'NodeWarden Labs',
+      company: 'PassVault Labs',
       ssn: '123-45-6789',
       passportNumber: 'X12345678',
       licenseNumber: 'D1234567',
@@ -335,7 +335,7 @@ export const DEMO_CIPHERS: Cipher[] = [
       decMiddleName: 'Morgan',
       decLastName: 'Chen',
       decUsername: 'alex.demo',
-      decCompany: 'NodeWarden Labs',
+      decCompany: 'PassVault Labs',
       decSsn: '123-45-6789',
       decPassportNumber: 'X12345678',
       decLicenseNumber: 'D1234567',
@@ -414,8 +414,8 @@ export const DEMO_SENDS: Send[] = [
     decName: 'Onboarding note',
     notes: 'Text Send preview.',
     decNotes: 'Text Send preview.',
-    text: { text: 'Welcome to NodeWarden demo mode.', hidden: false },
-    decText: 'Welcome to NodeWarden demo mode.',
+    text: { text: 'Welcome to PassVault demo mode.', hidden: false },
+    decText: 'Welcome to PassVault demo mode.',
     accessCount: 3,
     maxAccessCount: 10,
     disabled: false,
@@ -463,7 +463,7 @@ export function getDemoPublicSend(accessId: string): {
       id: 'send-demo-note',
       type: 0,
       decName: 'Onboarding note',
-      decText: 'Welcome to NodeWarden demo mode. This public Send page is served entirely from demo data.',
+      decText: 'Welcome to PassVault demo mode. This public Send page is served entirely from demo data.',
       expirationDate: '2026-05-18T08:00:00.000Z',
       file: null,
     };
@@ -552,7 +552,7 @@ export const DEMO_BACKUP_SETTINGS: AdminBackupSettings = {
         baseUrl: 'https://dav.example.com/nodewarden',
         username: 'demo-backup',
         password: 'demo-password',
-        remotePath: 'nodewarden',
+        remotePath: 'passvault',
       },
       schedule: {
         enabled: true,
@@ -567,7 +567,7 @@ export const DEMO_BACKUP_SETTINGS: AdminBackupSettings = {
         lastSuccessAt: '2026-05-04T03:01:12.000Z',
         lastErrorAt: null,
         lastErrorMessage: null,
-        lastUploadedFileName: 'nodewarden_backup_20260504_030112_a1b2c.zip',
+        lastUploadedFileName: 'passvault_backup_20260504_030112_a1b2c.zip',
         lastUploadedSizeBytes: 1048576,
         lastUploadedDestination: 'Demo WebDAV',
       },
@@ -848,8 +848,8 @@ function createDemoRemoteBrowser(destinationId: string, path: string = ''): Remo
     parentPath: path ? '' : null,
     items: [
       {
-        path: 'nodewarden_backup_20260504_030112_a1b2c.zip',
-        name: 'nodewarden_backup_20260504_030112_a1b2c.zip',
+        path: 'passvault_backup_20260504_030112_a1b2c.zip',
+        name: 'passvault_backup_20260504_030112_a1b2c.zip',
         isDirectory: false,
         size: 1048576,
         modifiedAt: '2026-05-04T03:01:12.000Z',
@@ -870,10 +870,10 @@ function createDemoBackupRun(settings: AdminBackupSettings, destinationId: strin
   return {
     object: 'backup-run',
     result: {
-      fileName: 'nodewarden_backup_20260504_030112_a1b2c.zip',
+      fileName: 'passvault_backup_20260504_030112_a1b2c.zip',
       fileSize: 1048576,
       provider: destination.type,
-      remotePath: 'nodewarden/nodewarden_backup_20260504_030112_a1b2c.zip',
+      remotePath: 'passvault/passvault_backup_20260504_030112_a1b2c.zip',
     },
     settings,
   };
@@ -1188,7 +1188,7 @@ export function createDemoMainRoutesProps(base: AppMainRoutesProps, notify: Noti
       object: 'backup-remote-integrity',
       destinationId: _destinationId,
       path,
-      fileName: path.split('/').pop() || 'nodewarden_backup_demo.zip',
+      fileName: path.split('/').pop() || 'passvault_backup_demo.zip',
       integrity: {
         hasChecksumPrefix: true,
         expectedPrefix: 'a1b2c',
@@ -1200,13 +1200,13 @@ export function createDemoMainRoutesProps(base: AppMainRoutesProps, notify: Noti
       notify('success', t('txt_backup_remote_delete_success'));
     },
     onRestoreRemoteBackup: async (_destinationId, path) => {
-      await runDemoRemoteRestoreProgress(path.split('/').pop() || path || 'nodewarden_backup_demo.zip');
+      await runDemoRemoteRestoreProgress(path.split('/').pop() || path || 'passvault_backup_demo.zip');
       resetDemoVaultState(state);
       notify('success', t('txt_backup_remote_restore_completed_verified'));
       return createDemoImportBackupResult();
     },
     onRestoreRemoteBackupAllowingChecksumMismatch: async (_destinationId, path) => {
-      await runDemoRemoteRestoreProgress(path.split('/').pop() || path || 'nodewarden_backup_demo.zip');
+      await runDemoRemoteRestoreProgress(path.split('/').pop() || path || 'passvault_backup_demo.zip');
       resetDemoVaultState(state);
       notify('success', t('txt_backup_remote_restore_completed_verified'));
       return createDemoImportBackupResult();

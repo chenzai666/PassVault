@@ -151,7 +151,7 @@ function buildBackupFileNameInTimeZone(
 ): string {
   const parts = getDateParts(date, timeZone);
   const suffix = checksumPrefix ? `_${checksumPrefix}` : '';
-  return `nodewarden_backup_${parts}${suffix}.zip`;
+  return `passvault_backup_${parts}${suffix}.zip`;
 }
 
 export function extractBackupFileChecksumPrefix(fileName: string): string | null {

@@ -13,7 +13,7 @@ interface VaultCoreCacheRecord {
   snapshot: VaultCoreSnapshot;
 }
 
-const DB_NAME = 'nodewarden-web-cache';
+const DB_NAME = 'passvault-web-cache';
 const DB_VERSION = 1;
 const VAULT_CORE_STORE = 'vault-core';
 

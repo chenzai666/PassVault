@@ -28,10 +28,10 @@ export default function StandalonePageFrame(props: StandalonePageFrameProps) {
       </div>
 
       <div className="standalone-footer">
-        <a href="https://github.com/chenzai666/nodewarden" target="_blank" rel="noreferrer">PassVault Repository</a>
+        <a href="https://github.com/chenzai666/PassVault" target="_blank" rel="noreferrer">PassVault Repository</a>
         <span> | </span>
         <a
-          href="https://github.com/chenzai666/nodewarden/releases/latest"
+          href="https://github.com/chenzai666/PassVault/releases/latest"
           target="_blank"
           rel="noreferrer"
           className="standalone-version"

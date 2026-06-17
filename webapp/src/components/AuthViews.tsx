@@ -234,7 +234,7 @@ export default function AuthViews(props: AuthViewsProps) {
 
   return (
     <div className="auth-page">
-      <StandalonePageFrame title={t('txt_log_in')} titleAccessory={<NetworkStatusBadge />}>
+      <StandalonePageFrame title={t('txt_unlock_vault')} titleAccessory={<NetworkStatusBadge />}>
         <form
           onSubmit={(e) => {
             e.preventDefault();

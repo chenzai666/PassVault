@@ -1,8 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 42">
-  <text x="2" y="33"
+  <text x="0" y="33"
     font-family="Inter, ui-sans-serif, 'Segoe UI', system-ui, sans-serif"
     font-size="30"
     font-weight="700"
-    letter-spacing="-0.4"
+    textLength="240"
+    lengthAdjust="spacingAndGlyphs"
     fill="black">PassVault</text>
 </svg>

@@ -54,10 +54,6 @@
     @apply text-2xl;
   }
 
-  .standalone-title-row {
-    padding-inline: 68px;
-  }
-
   .standalone-footer {
     @apply text-xs leading-[1.4];
   }
@@ -72,12 +68,12 @@
     @apply w-full max-w-[460px] gap-2.5;
   }
 
-  .standalone-brand-outside {
-    @apply justify-center;
-  }
-
   .standalone-brand-logo {
     @apply h-11 w-[55px];
+  }
+
+  .standalone-brand-name {
+    font-size: clamp(1.5rem, 7vw, 2rem);
   }
 
   .auth-card {

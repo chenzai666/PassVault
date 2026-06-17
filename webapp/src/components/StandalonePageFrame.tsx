@@ -11,11 +11,9 @@ interface StandalonePageFrameProps {
 export default function StandalonePageFrame(props: StandalonePageFrameProps) {
   return (
     <div className="standalone-shell">
-      <div className="standalone-brand standalone-brand-outside">
+      <div className="standalone-brand">
         <img src="/nodewarden-logo.svg" alt="PassVault logo" className="standalone-brand-logo" />
-        <div>
-          <span className="standalone-brand-wordmark" role="img" aria-label="PassVault" />
-        </div>
+        <span className="standalone-brand-name">PassVault</span>
       </div>
 
       <div className="auth-card">

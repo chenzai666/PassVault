@@ -1,6 +1,6 @@
 services:
   passvault:
-    build: .
+    image: bats666/passvault:latest
     ports:
       - "${PORT:-8787}:8787"
     volumes:

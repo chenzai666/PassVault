@@ -464,11 +464,7 @@
 }
 
 .standalone-brand {
-  @apply mb-3 flex items-center gap-3.5;
-}
-
-.standalone-brand-outside {
-  @apply mb-0.5 flex w-full justify-center;
+  @apply mb-2 flex w-full items-center justify-center gap-3.5;
 }
 
 .standalone-brand-logo {
@@ -476,28 +472,21 @@
   filter: drop-shadow(0 8px 18px rgba(194, 107, 43, 0.28));
 }
 
-.standalone-brand-wordmark {
-  @apply block max-w-full;
-  width: clamp(160px, 28vw, 280px);
-  aspect-ratio: 240 / 42;
-  background: var(--primary);
-  mask: url('/nodewarden-wordmark.svg') center / contain no-repeat;
-  -webkit-mask: url('/nodewarden-wordmark.svg') center / contain no-repeat;
+.standalone-brand-name {
+  font-size: clamp(1.75rem, 4.5vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--primary);
 }
 
 .standalone-title {
-  @apply m-0 text-center text-[1.9rem] font-extrabold leading-tight tracking-tight;
+  @apply m-0 text-[1.9rem] font-extrabold leading-tight tracking-tight;
   color: var(--ink);
 }
 
 .standalone-title-row {
-  @apply relative mb-1 flex min-h-9 items-center justify-center;
-  padding-inline: 84px;
-}
-
-.standalone-title-row > .network-status-badge {
-  @apply absolute right-0 top-1/2;
-  transform: translateY(-50%);
+  @apply mb-1 flex min-h-9 items-center justify-center gap-3;
 }
 
 .standalone-muted {

@@ -11,7 +11,7 @@
 <p align="center">
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-LGPL--3.0-2ea44f" alt="License: LGPL-3.0" /></a>
   <a href="https://github.com/chenzai666/PassVault/releases/latest"><img src="https://img.shields.io/github/v/release/chenzai666/PassVault?display_name=tag" alt="Latest Release" /></a>
-  <a href="https://hub.docker.com/r/chenzai666/passvault"><img src="https://img.shields.io/docker/pulls/chenzai666/passvault" alt="Docker Pulls" /></a>
+  <a href="https://hub.docker.com/r/bats666/passvault"><img src="https://img.shields.io/docker/pulls/bats666/passvault" alt="Docker Pulls" /></a>
 </p>
 
 > **免责声明**  
@@ -55,25 +55,17 @@
 ### 方式一：直接拉取镜像（推荐）
 
 ```bash
-# 创建数据目录和配置文件
 mkdir passvault && cd passvault
-curl -O https://raw.githubusercontent.com/chenzai666/PassVault/main/.env.example
-cp .env.example .env
-
-# 编辑 .env，至少设置 JWT_SECRET（32 位以上随机字符串）
-vi .env
 
 # 创建 docker-compose.yml
 cat > docker-compose.yml <<'EOF'
 services:
   passvault:
-    image: chenzai666/passvault:latest
+    image: bats666/passvault:latest
     ports:
-      - "${PORT:-8787}:8787"
+      - "8787:8787"
     volumes:
       - passvault-data:/app/.wrangler/state
-    env_file:
-      - .env
     restart: unless-stopped
 
 volumes:
@@ -83,17 +75,15 @@ EOF
 docker compose up -d
 ```
 
+服务默认监听 `8787` 端口，首次启动会自动生成 JWT 密钥并持久保存，无需任何手动配置。
+
 ### 方式二：从源码构建
 
 ```bash
 git clone https://github.com/chenzai666/PassVault.git
 cd PassVault
-cp .env.example .env
-vi .env
 docker compose up -d
 ```
-
-服务默认监听 `8787` 端口。建议配合 nginx 反代 + HTTPS 使用。
 
 ### nginx 反代配置示例
 
@@ -113,18 +103,20 @@ location ^~ / {
 
 ### 环境变量说明
 
-| 变量 | 必填 | 说明 |
-|---|---|---|
-| `JWT_SECRET` | ✅ | JWT 签名密钥，至少 32 位随机字符串 |
-| `WEBAUTHN_RP_ID` | 推荐 | Passkey 用，填你的域名（如 `vault.example.com`） |
-| `WEBAUTHN_RP_NAME` | 可选 | Passkey 显示名称 |
-| `WEBAUTHN_ALLOWED_ORIGINS` | 可选 | 允许的来源，多个用逗号分隔 |
+所有变量均为可选，可通过 `.env` 文件配置（参考 `.env.example`）。
+
+| 变量 | 说明 |
+|---|---|
+| `JWT_SECRET` | JWT 签名密钥。留空则自动生成并持久保存，重启后不变。多实例共享时需手动指定相同值。 |
+| `PORT` | 对外监听端口，默认 `8787` |
+| `WEBAUTHN_RP_ID` | Passkey 用，填你的域名（如 `vault.example.com`），需要 HTTPS |
+| `WEBAUTHN_RP_NAME` | Passkey 显示名称 |
+| `WEBAUTHN_ALLOWED_ORIGINS` | 允许的来源，多个用逗号分隔 |
 
 ### 更新
 
 ```bash
-git pull
-docker compose build
+docker compose pull
 docker compose up -d
 ```
 

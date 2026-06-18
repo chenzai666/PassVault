@@ -1,24 +1,38 @@
 #!/bin/sh
 set -e
 
-SECRET_FILE="/app/.wrangler/state/.jwt_secret"
+STATE_DIR="/app/.wrangler/state"
+JWT_SECRET_FILE="$STATE_DIR/.jwt_secret"
+CRON_SECRET_FILE="$STATE_DIR/.cron_secret"
 
-# 若未手动指定 JWT_SECRET，则从持久化文件读取或自动生成
-if [ -z "${JWT_SECRET:-}" ]; then
-  if [ -f "$SECRET_FILE" ]; then
-    JWT_SECRET="$(cat "$SECRET_FILE")"
+# 自动生成并持久化密钥的通用函数
+load_or_gen_secret() {
+  local file="$1" label="$2"
+  if [ -f "$file" ]; then
+    cat "$file"
   else
-    JWT_SECRET="$(node -e "process.stdout.write(require('crypto').randomBytes(48).toString('hex'))")"
-    mkdir -p "$(dirname "$SECRET_FILE")"
-    printf '%s' "$JWT_SECRET" > "$SECRET_FILE"
-    chmod 600 "$SECRET_FILE"
-    echo "PassVault: JWT_SECRET 已自动生成并保存至 $SECRET_FILE"
+    local val
+    val="$(node -e "process.stdout.write(require('crypto').randomBytes(48).toString('hex'))")"
+    mkdir -p "$STATE_DIR"
+    printf '%s' "$val" > "$file"
+    chmod 600 "$file"
+    echo "PassVault: $label 已自动生成并保存至 $file" >&2
+    printf '%s' "$val"
   fi
+}
+
+if [ -z "${JWT_SECRET:-}" ]; then
+  JWT_SECRET="$(load_or_gen_secret "$JWT_SECRET_FILE" "JWT_SECRET")"
+fi
+
+if [ -z "${CRON_SECRET:-}" ]; then
+  CRON_SECRET="$(load_or_gen_secret "$CRON_SECRET_FILE" "CRON_SECRET")"
 fi
 
 # 将环境变量写入 wrangler 所需的 .dev.vars 文件
 {
   echo "JWT_SECRET=${JWT_SECRET}"
+  echo "CRON_SECRET=${CRON_SECRET}"
   [ -n "${WEBAUTHN_RP_ID:-}" ]          && echo "WEBAUTHN_RP_ID=${WEBAUTHN_RP_ID}"
   [ -n "${WEBAUTHN_RP_NAME:-}" ]        && echo "WEBAUTHN_RP_NAME=${WEBAUTHN_RP_NAME}"
   [ -n "${WEBAUTHN_ALLOWED_ORIGINS:-}" ] && echo "WEBAUTHN_ALLOWED_ORIGINS=${WEBAUTHN_ALLOWED_ORIGINS}"

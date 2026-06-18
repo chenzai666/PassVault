@@ -512,5 +512,18 @@ export async function handlePublicRoute(
   if (path === '/notifications/anonymous-hub' && method === 'GET') {
     return handleAnonymousNotificationsHub(request, env);
   }
+
+  // 内部定时备份触发端点，仅供容器内 cron 调用，需携带 CRON_SECRET
+  if (path === '/api/internal/cron-trigger' && method === 'POST') {
+    const cronSecret = (env.CRON_SECRET || '').trim();
+    const provided = (request.headers.get('X-Cron-Token') || '').trim();
+    if (!cronSecret || !provided || cronSecret !== provided) {
+      return new Response('Forbidden', { status: 403 });
+    }
+    const { runScheduledBackupIfDue } = await import('./handlers/backup');
+    await runScheduledBackupIfDue(env);
+    return new Response('ok', { status: 200 });
+  }
+
   return null;
 }

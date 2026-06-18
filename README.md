@@ -88,6 +88,10 @@ docker compose up -d
 ### nginx 反代配置示例
 
 ```nginx
+# 屏蔽 wrangler dev 内部端点，防止外部触发
+location = /__scheduled { return 404; }
+location = /api/internal/cron-trigger { return 404; }
+
 location ^~ / {
     proxy_pass http://127.0.0.1:8787;
     proxy_set_header Host $host;

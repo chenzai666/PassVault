@@ -20,8 +20,8 @@ RUN npm run build
 # 创建持久化目录
 RUN mkdir -p .wrangler/state
 
-# 配置定时任务，每5分钟触发一次 scheduled 事件
-RUN echo '*/5 * * * * root curl -sf "http://localhost:8787/__scheduled?cron=*%%2F5+*+*+*+*" > /dev/null 2>&1' > /etc/cron.d/passvault-backup \
+# 配置定时任务：每5分钟通过受保护的内部端点触发备份检查
+RUN printf '*/5 * * * * root CRON_SECRET=$(cat /app/.wrangler/state/.cron_secret 2>/dev/null || true); [ -n "$CRON_SECRET" ] && curl -sf -X POST -H "X-Cron-Token: $CRON_SECRET" http://localhost:8787/api/internal/cron-trigger > /dev/null 2>&1\n' > /etc/cron.d/passvault-backup \
     && chmod 644 /etc/cron.d/passvault-backup
 
 EXPOSE 8787

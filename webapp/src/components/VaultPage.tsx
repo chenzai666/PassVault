@@ -1065,6 +1065,8 @@ const folderName = useCallback((id: string | null | undefined): string => {
           folderSortMode={folderSortMode}
           folderSortMenuOpen={folderSortMenuOpen}
           folderSortMenuRef={folderSortMenuRef}
+          createMenuOpen={createMenuOpen}
+          createMenuRef={createMenuRef}
           onCloseMobileSidebar={handleCloseMobileSidebar}
           onChangeFilter={setSidebarFilter}
           onOpenDeleteAllFolders={handleOpenDeleteAllFolders}
@@ -1073,6 +1075,8 @@ const folderName = useCallback((id: string | null | undefined): string => {
           onOpenDeleteFolder={setPendingDeleteFolder}
           onToggleFolderSortMenu={handleToggleFolderSortMenu}
           onSelectFolderSortMode={handleSelectFolderSortMode}
+          onToggleCreateMenu={handleToggleCreateMenu}
+          onStartCreate={startCreate}
         />
 
         <VaultListPanel

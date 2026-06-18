@@ -22,17 +22,25 @@
   --danger: #c0392b;
   --success: #2e7d5a;
   --warning: #b7791f;
+  --info: #2563b0;
+  --info-soft: color-mix(in srgb, #2563b0 10%, var(--panel));
   --overlay-strong: rgba(31, 27, 22, 0.62);
   --shadow-sm: 0 1px 3px rgba(52, 41, 31, 0.07), 0 1px 2px rgba(52, 41, 31, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(52, 41, 31, 0.09), 0 2px 4px -1px rgba(52, 41, 31, 0.06);
   --shadow-lg: 0 20px 25px -5px rgba(52, 41, 31, 0.12), 0 10px 10px -5px rgba(52, 41, 31, 0.05);
   --shadow-xl: 0 25px 50px -12px rgba(52, 41, 31, 0.25);
   --shadow-glow: 0 0 20px rgba(194, 107, 43, 0.18), 0 8px 24px rgba(194, 107, 43, 0.14);
+  --shadow-glass:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 2px 4px rgba(52, 41, 31, 0.05),
+    0 28px 56px rgba(52, 41, 31, 0.10),
+    0 56px 96px rgba(52, 41, 31, 0.06);
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 10px;
   --radius-xl: 14px;
   --radius-2xl: 18px;
+  --radius-3xl: 24px;
   --ease-out-strong: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-out-soft: cubic-bezier(0.24, 0.8, 0.32, 1);
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
@@ -118,4 +126,11 @@
   --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.60), 0 10px 10px -5px rgba(0, 0, 0, 0.50);
   --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.70);
   --shadow-glow: 0 0 20px rgba(212, 132, 74, 0.25), 0 8px 24px rgba(212, 132, 74, 0.18);
+  --shadow-glass:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 2px 4px rgba(0, 0, 0, 0.4),
+    0 28px 56px rgba(0, 0, 0, 0.55),
+    0 56px 96px rgba(0, 0, 0, 0.4);
+  --info: #4a8fd4;
+  --info-soft: color-mix(in srgb, #4a8fd4 12%, var(--panel));
 }

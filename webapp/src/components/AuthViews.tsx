@@ -1,6 +1,5 @@
 import { useState } from 'preact/hooks';
 import { ArrowLeft, Eye, EyeOff, KeyRound, LogIn, LogOut, Unlock, UserPlus } from 'lucide-preact';
-import NetworkStatusBadge from '@/components/NetworkStatusBadge';
 import StandalonePageFrame from '@/components/StandalonePageFrame';
 import { t } from '@/lib/i18n';
 
@@ -92,7 +91,7 @@ export default function AuthViews(props: AuthViewsProps) {
   if (props.mode === 'locked') {
     return (
       <div className="auth-page">
-        <StandalonePageFrame title={t('txt_unlock_vault')} titleAccessory={<NetworkStatusBadge />}>
+        <StandalonePageFrame title={t('txt_unlock_vault')}>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -150,7 +149,7 @@ export default function AuthViews(props: AuthViewsProps) {
   if (props.mode === 'register') {
     return (
       <div className="auth-page">
-        <StandalonePageFrame title={t('txt_create_account')} titleAccessory={<NetworkStatusBadge />}>
+        <StandalonePageFrame title={t('txt_create_account')}>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -234,7 +233,7 @@ export default function AuthViews(props: AuthViewsProps) {
 
   return (
     <div className="auth-page">
-      <StandalonePageFrame title={t('txt_unlock_vault')} titleAccessory={<NetworkStatusBadge />}>
+      <StandalonePageFrame title={t('txt_unlock_vault')}>
         <form
           onSubmit={(e) => {
             e.preventDefault();

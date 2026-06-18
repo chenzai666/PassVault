@@ -2,7 +2,7 @@
   auth: {
     // Access token lifetime in seconds.
     // 访问令牌有效期（秒）。
-    accessTokenTtlSeconds: 7200,
+    accessTokenTtlSeconds: 30 * 24 * 3600,
     // Refresh token lifetime in milliseconds.
     // 刷新令牌有效期（毫秒）。
     refreshTokenTtlMs: 365 * 24 * 60 * 60 * 1000,

@@ -12,6 +12,9 @@ set -e
   [ -n "${WEBAUTHN_ALLOWED_ORIGINS:-}" ] && echo "WEBAUTHN_ALLOWED_ORIGINS=${WEBAUTHN_ALLOWED_ORIGINS}"
 } > /app/.dev.vars
 
+# 启动系统 cron 守护进程（用于定时触发 WebDAV 备份）
+cron
+
 exec /app/node_modules/.bin/wrangler dev \
   -c wrangler.docker.toml \
   --ip 0.0.0.0 \

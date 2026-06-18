@@ -10,6 +10,7 @@ import {
   refreshAccessToken,
   recoverTwoFactor,
   registerAccount,
+  saveSession,
   unlockVaultKey,
 } from '@/lib/api/auth';
 import {
@@ -220,6 +221,24 @@ export function readInitialAppBootstrapState(): InitialAppBootstrapState {
   };
 }
 
+async function tryRecoverWebCookieSession(): Promise<SessionState | null> {
+  try {
+    const refreshed = await refreshAccessToken({ authMode: 'web-cookie', email: '' });
+    if (!refreshed.ok) return null;
+    const claims = decodeAccessTokenClaims(refreshed.token.access_token);
+    const email = String(claims.email || '').trim().toLowerCase();
+    if (!email) return null;
+    return {
+      email,
+      authMode: 'web-cookie',
+      accessToken: refreshed.token.access_token,
+      refreshToken: refreshed.token.refresh_token,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function bootstrapAppSession(initial: InitialAppBootstrapState = readInitialAppBootstrapState()): Promise<BootstrapAppResult> {
   const remoteBoot = await fetchBootstrapConfig();
   const normalizedBoot = normalizeBootstrapResponse(remoteBoot);
@@ -240,6 +259,21 @@ export async function bootstrapAppSession(initial: InitialAppBootstrapState = re
 
   const loaded = initial.session;
   if (!loaded) {
+    // 尝试用服务端 cookie 恢复 session（localStorage 被清除时仍能识别登录态）
+    const recovered = await tryRecoverWebCookieSession();
+    if (recovered) {
+      saveSession(recovered);
+      const cachedProfile = loadProfileSnapshot(recovered.email);
+      return {
+        defaultKdfIterations,
+        registrationInviteRequired,
+        jwtWarning: null,
+        session: recovered,
+        profile: cachedProfile,
+        phase: 'locked',
+        needsBackgroundHydration: true,
+      };
+    }
     return {
       defaultKdfIterations,
       registrationInviteRequired,

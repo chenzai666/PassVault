@@ -16,7 +16,7 @@ const SESSION_KEY = 'passvault.web.session.v4';
 const PROFILE_SNAPSHOT_KEY = 'passvault.web.profile-snapshot.v1';
 const DEVICE_IDENTIFIER_KEY = 'passvault.web.device.identifier.v1';
 const TOTP_REMEMBER_TOKEN_KEY = 'passvault.web.totp.remember-token.v1';
-const WEB_SESSION_HEADER = 'X-PassVault-Web-Session';
+const WEB_SESSION_HEADER = 'X-NodeWarden-Web-Session';
 
 export interface PreloginResult {
   hash: string;
@@ -56,11 +56,44 @@ function randomHex(length: number): string {
   return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, length);
 }
 
+// Cookie 读写工具（比 localStorage 更持久，可跨 browser 重启保留）
+function readCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.split('; ').find((c) => c.startsWith(`${name}=`));
+  return match ? decodeURIComponent(match.slice(name.length + 1)) : null;
+}
+
+function writeCookie(name: string, value: string, maxAgeSeconds: number): void {
+  if (typeof document === 'undefined') return;
+  const secure = location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax${secure}`;
+}
+
+function deleteCookie(name: string): void {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${name}=; Path=/; Max-Age=0`;
+}
+
+const DEVICE_COOKIE = 'pv_device_id';
+const TOTP_REMEMBER_COOKIE = 'pv_2fa_remember';
+const TOTP_REMEMBER_MAX_AGE = 400 * 24 * 3600; // 400 天，超过服务端 30 天限制，服务端到期后会拒绝
+
 function getOrCreateDeviceIdentifier(): string {
-  const current = (localStorage.getItem(DEVICE_IDENTIFIER_KEY) || '').trim();
-  if (current) return current;
+  // 优先读 cookie（跨浏览器重启持久），回退读 localStorage
+  const fromCookie = readCookie(DEVICE_COOKIE);
+  if (fromCookie) {
+    // 保持 localStorage 同步
+    try { localStorage.setItem(DEVICE_IDENTIFIER_KEY, fromCookie); } catch {}
+    return fromCookie;
+  }
+  const fromStorage = (localStorage.getItem(DEVICE_IDENTIFIER_KEY) || '').trim();
+  if (fromStorage) {
+    writeCookie(DEVICE_COOKIE, fromStorage, 10 * 365 * 24 * 3600);
+    return fromStorage;
+  }
   const next = `${randomHex(8)}-${randomHex(4)}-${randomHex(4)}-${randomHex(4)}-${randomHex(12)}`;
-  localStorage.setItem(DEVICE_IDENTIFIER_KEY, next);
+  writeCookie(DEVICE_COOKIE, next, 10 * 365 * 24 * 3600);
+  try { localStorage.setItem(DEVICE_IDENTIFIER_KEY, next); } catch {}
   return next;
 }
 
@@ -73,59 +106,81 @@ function guessDeviceName(): string {
 }
 
 function getRememberTwoFactorToken(): string | null {
-  const token = (localStorage.getItem(TOTP_REMEMBER_TOKEN_KEY) || '').trim();
-  return token || null;
+  // 优先读 cookie，回退 localStorage
+  const fromCookie = readCookie(TOTP_REMEMBER_COOKIE);
+  if (fromCookie) return fromCookie;
+  const fromStorage = (localStorage.getItem(TOTP_REMEMBER_TOKEN_KEY) || '').trim();
+  return fromStorage || null;
 }
 
 function saveRememberTwoFactorToken(token: string | undefined): void {
   const normalized = String(token || '').trim();
   if (!normalized) return;
-  localStorage.setItem(TOTP_REMEMBER_TOKEN_KEY, normalized);
+  writeCookie(TOTP_REMEMBER_COOKIE, normalized, TOTP_REMEMBER_MAX_AGE);
+  try { localStorage.setItem(TOTP_REMEMBER_TOKEN_KEY, normalized); } catch {}
 }
 
 function clearRememberTwoFactorToken(): void {
-  localStorage.removeItem(TOTP_REMEMBER_TOKEN_KEY);
+  deleteCookie(TOTP_REMEMBER_COOKIE);
+  try { localStorage.removeItem(TOTP_REMEMBER_TOKEN_KEY); } catch {}
 }
+
+const SESSION_COOKIE = 'pv_session';
+const SESSION_COOKIE_MAX_AGE = 400 * 24 * 3600;
 
 export function loadSession(): SessionState | null {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<SessionState> & Partial<PersistedSessionState>;
-    if (parsed.authMode === 'web-cookie' && parsed.email) {
+    // localStorage 有值时正常解析
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<SessionState> & Partial<PersistedSessionState>;
+      if (parsed.authMode === 'web-cookie' && parsed.email) {
+        return { email: parsed.email, authMode: 'web-cookie' };
+      }
+      if (parsed.authMode === 'token' && parsed.email && !parsed.accessToken && !parsed.refreshToken) {
+        return { email: parsed.email, authMode: 'token' };
+      }
+      if (!parsed.accessToken || !parsed.refreshToken || !parsed.email) return null;
       return {
-        email: parsed.email,
-        authMode: 'web-cookie',
-      };
-    }
-    if (parsed.authMode === 'token' && parsed.email && !parsed.accessToken && !parsed.refreshToken) {
-      return {
+        accessToken: parsed.accessToken,
+        refreshToken: parsed.refreshToken,
         email: parsed.email,
         authMode: 'token',
       };
     }
-    if (!parsed.accessToken || !parsed.refreshToken || !parsed.email) return null;
-    return {
-      accessToken: parsed.accessToken,
-      refreshToken: parsed.refreshToken,
-      email: parsed.email,
-      authMode: 'token',
-    };
-  } catch {
-    return null;
-  }
+  } catch {}
+
+  // localStorage 为空时，回退读 Cookie（浏览器重启/清除 localStorage 后仍能识别登录态）
+  try {
+    const cookieRaw = readCookie(SESSION_COOKIE);
+    if (!cookieRaw) return null;
+    const parsed = JSON.parse(cookieRaw) as Partial<PersistedSessionState>;
+    if (parsed.email && parsed.authMode === 'web-cookie') {
+      // 同步回写 localStorage
+      try { localStorage.setItem(SESSION_KEY, cookieRaw); } catch {}
+      return { email: parsed.email, authMode: 'web-cookie' };
+    }
+  } catch {}
+
+  return null;
 }
 
 export function saveSession(session: SessionState | null): void {
   if (!session) {
     localStorage.removeItem(SESSION_KEY);
+    deleteCookie(SESSION_COOKIE);
     return;
   }
   const persisted: PersistedSessionState = {
     email: session.email,
     authMode: session.authMode === 'token' ? 'token' : 'web-cookie',
   };
-  localStorage.setItem(SESSION_KEY, JSON.stringify(persisted));
+  const json = JSON.stringify(persisted);
+  localStorage.setItem(SESSION_KEY, json);
+  // 同步写 Cookie，防止 localStorage 被清除后需要重新登录
+  if (persisted.authMode === 'web-cookie') {
+    writeCookie(SESSION_COOKIE, json, SESSION_COOKIE_MAX_AGE);
+  }
 }
 
 export function loadProfileSnapshot(email?: string | null): Profile | null {

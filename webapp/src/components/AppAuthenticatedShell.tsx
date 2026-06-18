@@ -256,7 +256,7 @@ export default function AppAuthenticatedShell(props: AppAuthenticatedShellProps)
         <header className="topbar">
           <div className="brand">
             <img src="/nodewarden-logo.svg" alt="PassVault logo" className="brand-logo" />
-            <span className="brand-wordmark" role="img" aria-label="PassVault" />
+            <span className="brand-wordmark">PassVault</span>
             <span className="mobile-page-title">{props.currentPageTitle}</span>
           </div>
           <div className="topbar-search-slot" id="topbar-search-portal" />

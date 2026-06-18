@@ -323,14 +323,28 @@ export default function AppAuthenticatedShell(props: AppAuthenticatedShellProps)
                   <Link href="/sends" className={`account-menu-item ${props.location === '/sends' ? 'active' : ''}`} onClick={() => setAccountMenuOpen(false)}>
                     <SendIcon size={15} /><span>{t('nav_sends')}</span>
                   </Link>
+                  <div className="account-menu-sep" />
                   <Link href={props.settingsAccountRoute} className={`account-menu-item ${props.location === props.settingsAccountRoute ? 'active' : ''}`} onClick={() => setAccountMenuOpen(false)}>
                     <SettingsIcon size={15} /><span>{t('nav_account_settings')}</span>
                   </Link>
-                  {isAdmin && (
+                  <Link href="/settings/domain-rules" className={`account-menu-item ${props.location === '/settings/domain-rules' ? 'active' : ''}`} onClick={() => setAccountMenuOpen(false)}>
+                    <Globe2 size={15} /><span>{t('nav_domain_rules')}</span>
+                  </Link>
+                  <Link href={props.importRoute} className={`account-menu-item ${props.isImportRoute ? 'active' : ''}`} onClick={() => setAccountMenuOpen(false)}>
+                    <ArrowUpDown size={15} /><span>{t('nav_import_export')}</span>
+                  </Link>
+                  {isAdmin && (<>
+                    <div className="account-menu-sep" />
                     <Link href="/backup" className={`account-menu-item ${props.location === '/backup' ? 'active' : ''}`} onClick={() => setAccountMenuOpen(false)}>
                       <Cloud size={15} /><span>{t('nav_backup_strategy')}</span>
                     </Link>
-                  )}
+                    <Link href="/admin" className={`account-menu-item ${props.location === '/admin' ? 'active' : ''}`} onClick={() => setAccountMenuOpen(false)}>
+                      <Users size={15} /><span>{t('nav_admin_panel')}</span>
+                    </Link>
+                    <Link href="/logs" className={`account-menu-item ${props.location === '/logs' ? 'active' : ''}`} onClick={() => setAccountMenuOpen(false)}>
+                      <FileClock size={15} /><span>{t('nav_log_center')}</span>
+                    </Link>
+                  </>)}
                   <div className="account-menu-sep" />
                   <button type="button" className="account-menu-item" onClick={() => { setAccountMenuOpen(false); props.onLock(); }}>
                     <Lock size={15} /><span>{t('txt_lock')}</span>

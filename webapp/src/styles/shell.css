@@ -20,8 +20,6 @@
   background: rgba(255, 253, 250, 0.88);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  position: relative;
-  z-index: 60;
 }
 
 .brand {
@@ -49,15 +47,9 @@
 }
 
 .topbar-search-slot {
-  @apply relative flex flex-1 items-center;
-  max-width: 460px;
+  @apply flex flex-1 items-center;
+  max-width: 480px;
   margin: 0 20px;
-}
-
-.topbar-search-icon {
-  @apply pointer-events-none absolute z-10;
-  left: 14px;
-  color: var(--muted);
 }
 
 .topbar-search-slot .search-input-wrap {
@@ -66,22 +58,13 @@
 
 .topbar-search-slot .search-input {
   @apply w-full;
-  height: 40px;
-  padding: 0 36px 0 40px;
+  height: 36px;
+  padding: 0 36px 0 14px;
   font-size: var(--font-sm);
-  border-radius: 999px;
-  border-color: color-mix(in srgb, var(--primary) 16%, var(--line));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
-}
-
-.topbar-search-slot .search-input:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .topbar-search-slot .search-clear-btn {
   right: 10px;
-  border-radius: 999px;
 }
 
 .topbar-actions {
@@ -515,99 +498,4 @@
 .auth-request-fingerprint-inline {
   color: var(--muted-strong);
   max-width: 260px;
-}
-
-/* vault 页面：隐藏全局侧边栏，让 vault-grid 占满宽度 */
-.app-main.vault-fullscreen {
-  grid-template-columns: 1fr;
-}
-
-.app-main.vault-fullscreen .app-side {
-  display: none;
-}
-
-/* 用户账户下拉菜单 */
-.account-menu-wrap {
-  @apply relative;
-}
-
-.user-chip {
-  @apply inline-flex h-[34px] cursor-pointer items-center gap-1.5 rounded-full border px-3 text-sm font-semibold transition;
-  background: var(--panel);
-  border-color: var(--line);
-  box-shadow: var(--shadow-sm);
-  color: var(--muted-strong);
-}
-
-.user-chip-av {
-  @apply grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full text-xs font-bold text-white;
-  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
-}
-
-.user-chip-email {
-  @apply max-w-[140px] overflow-hidden text-ellipsis whitespace-nowrap;
-}
-
-.user-chip-chevron {
-  @apply shrink-0;
-  color: var(--muted);
-  transition: transform 180ms var(--ease-out-soft);
-}
-
-.user-chip.active .user-chip-chevron {
-  transform: rotate(180deg);
-}
-
-.user-chip:hover,
-.user-chip.active {
-  border-color: color-mix(in srgb, var(--primary) 30%, var(--line));
-  box-shadow: var(--shadow-md);
-}
-
-.account-menu {
-  @apply absolute right-0 top-[calc(100%+6px)] z-50 grid min-w-[180px] gap-0.5 rounded-2xl border p-1.5;
-  background: var(--panel);
-  border-color: var(--line);
-  box-shadow: var(--shadow-md);
-  animation: menu-in 180ms var(--ease-out-strong) both;
-}
-
-.account-menu-item {
-  @apply flex w-full cursor-pointer items-center gap-2.5 rounded-xl border border-transparent bg-transparent px-3 py-2 text-left text-sm font-medium no-underline transition;
-  color: var(--text);
-}
-
-.account-menu-item:hover {
-  background: color-mix(in srgb, var(--primary) 8%, var(--panel));
-  border-color: color-mix(in srgb, var(--primary) 16%, var(--line));
-}
-
-.account-menu-item.active {
-  color: var(--primary-strong);
-  background: color-mix(in srgb, var(--primary) 10%, var(--panel));
-}
-
-.account-menu-item--danger {
-  color: var(--danger);
-}
-
-.account-menu-item--danger:hover {
-  background: color-mix(in srgb, var(--danger) 8%, var(--panel));
-  border-color: color-mix(in srgb, var(--danger) 16%, var(--line));
-}
-
-.account-menu-sep {
-  @apply my-1 h-px;
-  background: var(--line-soft);
-}
-
-/* 侧边栏 New Item 按钮 */
-.sidebar-new-wrap {
-  @apply relative mb-2;
-}
-
-.sidebar-new-btn {
-  @apply h-[40px] w-full justify-center rounded-2xl text-sm font-semibold;
-  gap: 8px;
-  border-radius: 999px;
 }

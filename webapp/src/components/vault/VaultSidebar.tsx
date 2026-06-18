@@ -13,7 +13,6 @@ import {
   KeyRound,
   LayoutGrid,
   Pencil,
-  Plus,
   ShieldUser,
   Star,
   StickyNote,
@@ -22,7 +21,7 @@ import {
 } from 'lucide-preact';
 import type { Folder } from '@/lib/types';
 import { t } from '@/lib/i18n';
-import { CreateTypeIcon, getCreateTypeOptions, getFolderSortOptions, type SidebarFilter, type VaultSortMode } from '@/components/vault/vault-page-helpers';
+import { getFolderSortOptions, type SidebarFilter, type VaultSortMode } from '@/components/vault/vault-page-helpers';
 
 interface VaultSidebarProps {
   folders: Folder[];
@@ -33,8 +32,6 @@ interface VaultSidebarProps {
   folderSortMode: VaultSortMode;
   folderSortMenuOpen: boolean;
   folderSortMenuRef: RefObject<HTMLDivElement>;
-  createMenuOpen: boolean;
-  createMenuRef: RefObject<HTMLDivElement>;
   onCloseMobileSidebar: () => void;
   onChangeFilter: (filter: SidebarFilter) => void;
   onOpenDeleteAllFolders: () => void;
@@ -43,13 +40,10 @@ interface VaultSidebarProps {
   onOpenDeleteFolder: (folder: Folder) => void;
   onToggleFolderSortMenu: () => void;
   onSelectFolderSortMode: (value: VaultSortMode) => void;
-  onToggleCreateMenu: () => void;
-  onStartCreate: (type: number) => void;
 }
 
 export default function VaultSidebar(props: VaultSidebarProps) {
   const folderSortOptions = getFolderSortOptions();
-  const createTypeOptions = getCreateTypeOptions();
   const nameCollator = useMemo(
     () => new Intl.Collator(undefined, { sensitivity: 'base', numeric: true }),
     []
@@ -97,27 +91,6 @@ export default function VaultSidebar(props: VaultSidebarProps) {
           </button>
         </div>
       )}
-      <div className="sidebar-new-wrap" ref={props.createMenuRef}>
-        <button
-          type="button"
-          className="btn btn-primary sidebar-new-btn"
-          onClick={props.onToggleCreateMenu}
-        >
-          <Plus size={16} className="btn-icon" />
-          {t('txt_add')}
-        </button>
-        {props.createMenuOpen && (
-          <div className="create-menu">
-            {createTypeOptions.map((option) => (
-              <button key={option.type} type="button" className="create-menu-item" onClick={() => props.onStartCreate(option.type)}>
-                <CreateTypeIcon type={option.type} />
-                <span>{option.label}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
       <div className="sidebar-block">
         <button type="button" className={`tree-btn ${props.sidebarFilter.kind === 'all' ? 'active' : ''}`} onClick={() => props.onChangeFilter({ kind: 'all' })}>
           <LayoutGrid size={14} className="tree-icon" /> <span className="tree-label">{t('txt_all_items')}</span>

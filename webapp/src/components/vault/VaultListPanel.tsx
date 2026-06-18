@@ -168,44 +168,45 @@ export default function VaultListPanel(props: VaultListPanelProps) {
   return (
     <section className="list-col">
       {topbarSlot ? createPortal(searchEl, topbarSlot) : null}
-      {props.isMobileLayout && typeof document !== 'undefined' && props.mobileFabVisible
-        ? createPortal(createMenu, document.body)
-        : null}
       <div className="list-head">
-        <div className="list-head-label">{t('txt_all_items')}</div>
-        <div className="list-head-meta">
-          <div className="list-count" title={t('txt_total_items_count', { count: props.totalCipherCount })}>
-            {props.totalCipherCount}
-          </div>
-          <div className="sort-menu-wrap" ref={props.sortMenuRef}>
-            <button
-              type="button"
-              className={`btn btn-secondary small sort-trigger ${props.sortMenuOpen ? 'active' : ''}`}
-              aria-label={t('txt_sort')}
-              title={t('txt_sort')}
-              onClick={props.onToggleSortMenu}
-            >
-              <ArrowUpDown size={14} className="btn-icon" />
+        <div className="list-head-create-row">
+          {props.isMobileLayout && typeof document !== 'undefined'
+            ? props.mobileFabVisible ? createPortal(createMenu, document.body) : null
+            : createMenu}
+          <div className="list-head-meta">
+            <div className="list-count" title={t('txt_total_items_count', { count: props.totalCipherCount })}>
+              {t('txt_total_items_count', { count: props.totalCipherCount })}
+            </div>
+            <div className="sort-menu-wrap" ref={props.sortMenuRef}>
+              <button
+                type="button"
+                className={`btn btn-secondary small sort-trigger ${props.sortMenuOpen ? 'active' : ''}`}
+                aria-label={t('txt_sort')}
+                title={t('txt_sort')}
+                onClick={props.onToggleSortMenu}
+              >
+                <ArrowUpDown size={14} className="btn-icon" />
+              </button>
+              {props.sortMenuOpen && (
+                <div className="sort-menu">
+                  {vaultSortOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`sort-menu-item ${props.sortMode === option.value ? 'active' : ''}`}
+                      onClick={() => props.onSelectSortMode(option.value)}
+                    >
+                      <span>{option.label}</span>
+                      {props.sortMode === option.value ? <Check size={14} /> : <span className="sort-menu-check-placeholder" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button type="button" className="btn btn-secondary small list-icon-btn" disabled={props.busy || props.loading} onClick={props.onSyncVault}>
+              <RefreshCw size={14} className="btn-icon" />
             </button>
-            {props.sortMenuOpen && (
-              <div className="sort-menu">
-                {vaultSortOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    className={`sort-menu-item ${props.sortMode === option.value ? 'active' : ''}`}
-                    onClick={() => props.onSelectSortMode(option.value)}
-                  >
-                    <span>{option.label}</span>
-                    {props.sortMode === option.value ? <Check size={14} /> : <span className="sort-menu-check-placeholder" />}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
-          <button type="button" className="btn btn-secondary small list-icon-btn" disabled={props.busy || props.loading} onClick={props.onSyncVault}>
-            <RefreshCw size={14} className="btn-icon" />
-          </button>
         </div>
       </div>
       <div className="toolbar actions">

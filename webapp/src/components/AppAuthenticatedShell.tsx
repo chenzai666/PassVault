@@ -1,4 +1,4 @@
-import { ArrowUpDown, Check, ChevronDown, Clock3, Cloud, FileClock, Folder as FolderIcon, Globe2, KeyRound, Lock, LogOut, MonitorSmartphone, Search, Send as SendIcon, Settings as SettingsIcon, ShieldUser, SlidersHorizontal, Users } from 'lucide-preact';
+import { ArrowUpDown, Check, ChevronDown, Clock3, Cloud, FileClock, Folder as FolderIcon, Globe2, KeyRound, Lock, LogOut, MonitorSmartphone, Send as SendIcon, Settings as SettingsIcon, ShieldUser, SlidersHorizontal, Users } from 'lucide-preact';
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { Link } from 'wouter';
@@ -62,10 +62,8 @@ export default function AppAuthenticatedShell(props: AppAuthenticatedShellProps)
   const managementActive = props.location === '/admin' || deviceManagementActive || props.location === '/logs';
   const [navLayoutMode, setNavLayoutMode] = useState<NavLayoutMode>(readNavLayoutMode);
   const [navLayoutPickerOpen, setNavLayoutPickerOpen] = useState(false);
-  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const navLayoutPickerRef = useRef<HTMLDivElement | null>(null);
   const sideNavMainRef = useRef<HTMLDivElement | null>(null);
-  const accountMenuRef = useRef<HTMLDivElement | null>(null);
   const [expandedGroups, setExpandedGroups] = useState({
     vault: true,
     settings: false,
@@ -102,25 +100,6 @@ export default function AppAuthenticatedShell(props: AppAuthenticatedShellProps)
       document.removeEventListener('keydown', onKeyDown);
     };
   }, [navLayoutPickerOpen]);
-
-  useEffect(() => {
-    const onPointerDown = (event: Event) => {
-      if (!accountMenuOpen) return;
-      const target = event.target as Node | null;
-      if (accountMenuRef.current && target && !accountMenuRef.current.contains(target)) {
-        setAccountMenuOpen(false);
-      }
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setAccountMenuOpen(false);
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [accountMenuOpen]);
 
   function setNavMode(mode: NavLayoutMode): void {
     const el = sideNavMainRef.current;
@@ -280,12 +259,17 @@ export default function AppAuthenticatedShell(props: AppAuthenticatedShellProps)
             <span className="brand-wordmark" role="img" aria-label="PassVault" />
             <span className="mobile-page-title">{props.currentPageTitle}</span>
           </div>
-          <div className="topbar-search-slot" id="topbar-search-portal">
-            <Search size={15} className="topbar-search-icon" />
-          </div>
+          <div className="topbar-search-slot" id="topbar-search-portal" />
           <div className="topbar-actions">
             <NetworkStatusBadge />
+            <div className="user-chip">
+              <ShieldUser size={16} />
+              <span>{props.profile?.email}</span>
+            </div>
             <ThemeSwitch checked={props.darkMode} title={props.themeToggleTitle} onToggle={props.onToggleTheme} />
+            <button type="button" className="btn btn-secondary small" onClick={props.onLock}>
+              <Lock size={14} className="btn-icon" /> {t('txt_lock')}
+            </button>
             {props.showSidebarToggle && (
               <button
                 type="button"
@@ -303,62 +287,13 @@ export default function AppAuthenticatedShell(props: AppAuthenticatedShellProps)
             <button type="button" className="btn btn-secondary small mobile-lock-btn" aria-label={t('txt_lock')} title={t('txt_lock')} onClick={props.onLock}>
               <Lock size={14} className="btn-icon" />
             </button>
-            <div className="account-menu-wrap" ref={accountMenuRef}>
-              <button
-                type="button"
-                className={`user-chip ${accountMenuOpen ? 'active' : ''}`}
-                onClick={() => setAccountMenuOpen((o) => !o)}
-                aria-haspopup="menu"
-                aria-expanded={accountMenuOpen}
-              >
-                <span className="user-chip-av">{(props.profile?.email || '?')[0].toUpperCase()}</span>
-                <span className="user-chip-email">{props.profile?.email}</span>
-                <ChevronDown size={14} className="user-chip-chevron" />
-              </button>
-              {accountMenuOpen && (
-                <div className="account-menu" role="menu">
-                  <Link href="/vault/totp" className={`account-menu-item ${props.location === '/vault/totp' ? 'active' : ''}`} onClick={() => setAccountMenuOpen(false)}>
-                    <Clock3 size={15} /><span>{t('txt_verification_code')}</span>
-                  </Link>
-                  <Link href="/sends" className={`account-menu-item ${props.location === '/sends' ? 'active' : ''}`} onClick={() => setAccountMenuOpen(false)}>
-                    <SendIcon size={15} /><span>{t('nav_sends')}</span>
-                  </Link>
-                  <div className="account-menu-sep" />
-                  <Link href={props.settingsAccountRoute} className={`account-menu-item ${props.location === props.settingsAccountRoute ? 'active' : ''}`} onClick={() => setAccountMenuOpen(false)}>
-                    <SettingsIcon size={15} /><span>{t('nav_account_settings')}</span>
-                  </Link>
-                  <Link href="/settings/domain-rules" className={`account-menu-item ${props.location === '/settings/domain-rules' ? 'active' : ''}`} onClick={() => setAccountMenuOpen(false)}>
-                    <Globe2 size={15} /><span>{t('nav_domain_rules')}</span>
-                  </Link>
-                  <Link href={props.importRoute} className={`account-menu-item ${props.isImportRoute ? 'active' : ''}`} onClick={() => setAccountMenuOpen(false)}>
-                    <ArrowUpDown size={15} /><span>{t('nav_import_export')}</span>
-                  </Link>
-                  {isAdmin && (<>
-                    <div className="account-menu-sep" />
-                    <Link href="/backup" className={`account-menu-item ${props.location === '/backup' ? 'active' : ''}`} onClick={() => setAccountMenuOpen(false)}>
-                      <Cloud size={15} /><span>{t('nav_backup_strategy')}</span>
-                    </Link>
-                    <Link href="/admin" className={`account-menu-item ${props.location === '/admin' ? 'active' : ''}`} onClick={() => setAccountMenuOpen(false)}>
-                      <Users size={15} /><span>{t('nav_admin_panel')}</span>
-                    </Link>
-                    <Link href="/logs" className={`account-menu-item ${props.location === '/logs' ? 'active' : ''}`} onClick={() => setAccountMenuOpen(false)}>
-                      <FileClock size={15} /><span>{t('nav_log_center')}</span>
-                    </Link>
-                  </>)}
-                  <div className="account-menu-sep" />
-                  <button type="button" className="account-menu-item" onClick={() => { setAccountMenuOpen(false); props.onLock(); }}>
-                    <Lock size={15} /><span>{t('txt_lock')}</span>
-                  </button>
-                  <button type="button" className="account-menu-item account-menu-item--danger" onClick={() => { setAccountMenuOpen(false); props.onLogout(); }}>
-                    <LogOut size={15} /><span>{t('txt_sign_out')}</span>
-                  </button>
-                </div>
-              )}
-            </div>
+            <button type="button" className="btn btn-secondary small" onClick={props.onLogout}>
+              <LogOut size={14} className="btn-icon" /> {t('txt_sign_out')}
+            </button>
           </div>
         </header>
 
-        <div className={`app-main ${vaultActive ? 'vault-fullscreen' : ''}`}>
+        <div className="app-main">
           <aside className="app-side">
             <div className="side-nav-main" ref={sideNavMainRef}>
               {navLayoutMode === 'flat' ? flatNav : groupedNav}

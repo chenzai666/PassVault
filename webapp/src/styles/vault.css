@@ -190,15 +190,25 @@
 }
 
 .list-head {
-  @apply mb-2 flex items-center gap-2.5;
+  @apply mb-2;
 }
 
-.list-head .search-input-wrap {
-  @apply min-w-0 flex-auto;
+.list-head-create-row {
+  @apply flex items-center gap-2;
 }
 
-.list-head .search-input {
-  @apply h-[42px];
+.list-head-meta {
+  @apply flex shrink-0 items-center gap-2 ml-auto;
+}
+
+.list-head .create-menu-wrap {
+  @apply flex-1;
+}
+
+.list-head .mobile-fab-trigger,
+.list-head .create-menu-wrap > .btn {
+  @apply h-[40px] w-full justify-center rounded-2xl text-sm font-semibold;
+  gap: 8px;
 }
 
 .list-head .btn {

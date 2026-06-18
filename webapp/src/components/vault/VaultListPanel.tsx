@@ -113,12 +113,13 @@ export default function VaultListPanel(props: VaultListPanelProps) {
     <div className="create-menu-wrap mobile-fab-wrap" ref={props.createMenuRef}>
       <button
         type="button"
-        className="btn btn-primary small mobile-fab-trigger"
+        className="btn btn-primary mobile-fab-trigger"
         aria-label={t('txt_add')}
         title={t('txt_add')}
         onClick={props.onToggleCreateMenu}
       >
-        <Plus size={14} className="btn-icon" />
+        <Plus size={16} className="btn-icon" />
+        {t('txt_add')}
       </button>
       {props.createMenuOpen && (
         <div className="create-menu">
@@ -133,67 +134,80 @@ export default function VaultListPanel(props: VaultListPanelProps) {
     </div>
   );
 
+  const searchEl = (
+    <div className="search-input-wrap">
+      <input
+        className="search-input"
+        placeholder={t('txt_search_your_secure_vault')}
+        value={props.searchInput}
+        onInput={(e) => props.onSearchInput((e.currentTarget as HTMLInputElement).value)}
+        onCompositionStart={props.onSearchCompositionStart}
+        onCompositionEnd={(e) => props.onSearchCompositionEnd((e.currentTarget as HTMLInputElement).value)}
+        onKeyDown={(e) => {
+          if (e.key !== 'Escape' || !props.searchInput) return;
+          e.preventDefault();
+          props.onClearSearch();
+        }}
+      />
+      {!!props.searchInput && (
+        <button
+          type="button"
+          className="search-clear-btn"
+          aria-label={t('txt_clear_search')}
+          title={t('txt_clear_search_esc')}
+          onClick={props.onClearSearch}
+        >
+          <X size={14} />
+        </button>
+      )}
+    </div>
+  );
+
+  const topbarSlot = typeof document !== 'undefined' ? document.getElementById('topbar-search-portal') : null;
+
   return (
     <section className="list-col">
+      {topbarSlot ? createPortal(searchEl, topbarSlot) : null}
       <div className="list-head">
-        <div className="search-input-wrap">
-          <input
-            className="search-input"
-            placeholder={t('txt_search_your_secure_vault')}
-            value={props.searchInput}
-            onInput={(e) => props.onSearchInput((e.currentTarget as HTMLInputElement).value)}
-            onCompositionStart={props.onSearchCompositionStart}
-            onCompositionEnd={(e) => props.onSearchCompositionEnd((e.currentTarget as HTMLInputElement).value)}
-            onKeyDown={(e) => {
-              if (e.key !== 'Escape' || !props.searchInput) return;
-              e.preventDefault();
-              props.onClearSearch();
-            }}
-          />
-          {!!props.searchInput && (
-            <button
-              type="button"
-              className="search-clear-btn"
-              aria-label={t('txt_clear_search')}
-              title={t('txt_clear_search_esc')}
-              onClick={props.onClearSearch}
-            >
-              <X size={14} />
-            </button>
-          )}
-        </div>
-        <div className="sort-menu-wrap" ref={props.sortMenuRef}>
-          <button
-            type="button"
-            className={`btn btn-secondary small sort-trigger ${props.sortMenuOpen ? 'active' : ''}`}
-            aria-label={t('txt_sort')}
-            title={t('txt_sort')}
-            onClick={props.onToggleSortMenu}
-          >
-            <ArrowUpDown size={14} className="btn-icon" />
-          </button>
-          {props.sortMenuOpen && (
-            <div className="sort-menu">
-              {vaultSortOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={`sort-menu-item ${props.sortMode === option.value ? 'active' : ''}`}
-                  onClick={() => props.onSelectSortMode(option.value)}
-                >
-                  <span>{option.label}</span>
-                  {props.sortMode === option.value ? <Check size={14} /> : <span className="sort-menu-check-placeholder" />}
-                </button>
-              ))}
+        <div className="list-head-create-row">
+          {props.isMobileLayout && typeof document !== 'undefined'
+            ? props.mobileFabVisible ? createPortal(createMenu, document.body) : null
+            : createMenu}
+          <div className="list-head-meta">
+            <div className="list-count" title={t('txt_total_items_count', { count: props.totalCipherCount })}>
+              {t('txt_total_items_count', { count: props.totalCipherCount })}
             </div>
-          )}
+            <div className="sort-menu-wrap" ref={props.sortMenuRef}>
+              <button
+                type="button"
+                className={`btn btn-secondary small sort-trigger ${props.sortMenuOpen ? 'active' : ''}`}
+                aria-label={t('txt_sort')}
+                title={t('txt_sort')}
+                onClick={props.onToggleSortMenu}
+              >
+                <ArrowUpDown size={14} className="btn-icon" />
+              </button>
+              {props.sortMenuOpen && (
+                <div className="sort-menu">
+                  {vaultSortOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`sort-menu-item ${props.sortMode === option.value ? 'active' : ''}`}
+                      onClick={() => props.onSelectSortMode(option.value)}
+                    >
+                      <span>{option.label}</span>
+                      {props.sortMode === option.value ? <Check size={14} /> : <span className="sort-menu-check-placeholder" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button type="button" className="btn btn-secondary small list-icon-btn" disabled={props.busy || props.loading} onClick={props.onSyncVault}>
+              <RefreshCw size={14} className="btn-icon" />
+            </button>
+          </div>
         </div>
-        <div className="list-count" title={t('txt_total_items_count', { count: props.totalCipherCount })}>
-          {t('txt_total_items_count', { count: props.totalCipherCount })}
-        </div>
-        <button type="button" className="btn btn-secondary small list-icon-btn" disabled={props.busy || props.loading} onClick={props.onSyncVault}>
-          <RefreshCw size={14} className="btn-icon" /> {t('txt_sync_vault')}
-        </button>
       </div>
       <div className="toolbar actions">
         {props.sidebarFilter.kind === 'duplicates' && (
@@ -232,9 +246,6 @@ export default function VaultListPanel(props: VaultListPanelProps) {
         <button type="button" className="btn btn-secondary small" disabled={!props.filteredCiphers.length} onClick={props.onSelectAll}>
           <CheckCheck size={14} className="btn-icon" /> {t('txt_select_all')}
         </button>
-        {props.isMobileLayout && typeof document !== 'undefined'
-          ? props.mobileFabVisible ? createPortal(createMenu, document.body) : null
-          : createMenu}
       </div>
 
       <div className="list-panel" ref={props.listPanelRef} onScroll={(event) => props.onScroll((event.currentTarget as HTMLDivElement).scrollTop)}>

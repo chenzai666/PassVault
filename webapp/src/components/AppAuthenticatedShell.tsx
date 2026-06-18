@@ -259,6 +259,7 @@ export default function AppAuthenticatedShell(props: AppAuthenticatedShellProps)
             <span className="brand-wordmark" role="img" aria-label="PassVault" />
             <span className="mobile-page-title">{props.currentPageTitle}</span>
           </div>
+          <div className="topbar-search-slot" id="topbar-search-portal" />
           <div className="topbar-actions">
             <NetworkStatusBadge />
             <div className="user-chip">

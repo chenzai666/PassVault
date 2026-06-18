@@ -23,26 +23,48 @@
 }
 
 .brand {
-  @apply inline-flex items-center gap-2 text-[34px] font-extrabold text-ink;
+  @apply inline-flex shrink-0 items-center gap-2;
 }
 
 .brand-wordmark {
   @apply block max-w-full;
-  width: clamp(120px, 13vw, 180px);
+  width: clamp(80px, 9vw, 120px);
   aspect-ratio: 240 / 42;
-  background: var(--muted-strong);
+  background: var(--text);
   mask: url('/nodewarden-wordmark.svg') left center / contain no-repeat;
   -webkit-mask: url('/nodewarden-wordmark.svg') left center / contain no-repeat;
 }
 
 .mobile-page-title {
-  @apply hidden min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[19px] font-extrabold leading-tight text-slate-900;
+  @apply hidden min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[17px] font-bold leading-tight;
+  color: var(--text);
   max-width: min(58vw, 240px);
 }
 
 .brand-logo {
-  @apply h-[42px] w-[53px] object-contain;
-  filter: drop-shadow(0 10px 22px rgba(194, 107, 43, 0.28));
+  @apply h-[28px] w-auto object-contain;
+  filter: drop-shadow(0 4px 10px rgba(194, 107, 43, 0.22));
+}
+
+.topbar-search-slot {
+  @apply flex flex-1 items-center;
+  max-width: 480px;
+  margin: 0 20px;
+}
+
+.topbar-search-slot .search-input-wrap {
+  @apply relative w-full;
+}
+
+.topbar-search-slot .search-input {
+  @apply w-full;
+  height: 36px;
+  padding: 0 36px 0 14px;
+  font-size: var(--font-sm);
+}
+
+.topbar-search-slot .search-clear-btn {
+  right: 10px;
 }
 
 .topbar-actions {

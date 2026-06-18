@@ -1,8 +1,20 @@
 #!/bin/sh
 set -e
 
-# 校验必填变量
-: "${JWT_SECRET:?请在 .env 文件中设置 JWT_SECRET}"
+SECRET_FILE="/app/.wrangler/state/.jwt_secret"
+
+# 若未手动指定 JWT_SECRET，则从持久化文件读取或自动生成
+if [ -z "${JWT_SECRET:-}" ]; then
+  if [ -f "$SECRET_FILE" ]; then
+    JWT_SECRET="$(cat "$SECRET_FILE")"
+  else
+    JWT_SECRET="$(node -e "process.stdout.write(require('crypto').randomBytes(48).toString('hex'))")"
+    mkdir -p "$(dirname "$SECRET_FILE")"
+    printf '%s' "$JWT_SECRET" > "$SECRET_FILE"
+    chmod 600 "$SECRET_FILE"
+    echo "PassVault: JWT_SECRET 已自动生成并保存至 $SECRET_FILE"
+  fi
+fi
 
 # 将环境变量写入 wrangler 所需的 .dev.vars 文件
 {

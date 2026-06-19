@@ -290,7 +290,6 @@ h4 {
   filter: none;
 }
 
-.brand-wordmark,
 .standalone-brand-wordmark,
 .not-found-wordmark {
   background: var(--primary);

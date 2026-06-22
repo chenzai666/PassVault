@@ -1,11 +1,11 @@
 :root {
   /* PassVault 暖色系 */
-  --bg-accent: #f3ede6;
-  --panel: #fffdfa;
-  --panel-soft: #f8f5f0;
-  --panel-muted: #f0ebe3;
-  --panel-subtle: #fdfbf8;
-  --surface: #fffdfa;
+  --bg-accent: #edebea;
+  --panel: #faf9f7;
+  --panel-soft: #f4f3f1;
+  --panel-muted: #eceae8;
+  --panel-subtle: #f7f6f5;
+  --surface: #faf9f7;
   --line: rgba(139, 104, 72, 0.20);
   --line-soft: rgba(139, 104, 72, 0.12);
   --text: #1f1b16;

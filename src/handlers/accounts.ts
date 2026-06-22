@@ -7,7 +7,7 @@ import { jsonResponse, errorResponse } from '../utils/response';
 import { generateUUID } from '../utils/uuid';
 import { LIMITS } from '../config/limits';
 import { isTotpEnabled, verifyTotpToken } from '../utils/totp';
-import { createRecoveryCode, recoveryCodeEquals } from '../utils/recovery-code';
+import { createRecoveryCode, recoveryCodeEquals, encryptRecoveryCode, decryptRecoveryCode } from '../utils/recovery-code';
 import { buildAccountKeys } from '../utils/user-decryption';
 
 const TWO_FACTOR_PROVIDER_AUTHENTICATOR = 0;
@@ -773,7 +773,7 @@ export async function handlePutTwoFactorAuthenticator(request: Request, env: Env
 
   user.totpSecret = key;
   if (!user.totpRecoveryCode) {
-    user.totpRecoveryCode = createRecoveryCode();
+    user.totpRecoveryCode = await encryptRecoveryCode(createRecoveryCode(), env.JWT_SECRET);
   }
   user.updatedAt = new Date().toISOString();
   await storage.saveUser(user);
@@ -871,8 +871,12 @@ export async function handleSetTotpStatus(request: Request, env: Env, userId: st
       return errorResponse('Invalid TOTP token', 400);
     }
     user.totpSecret = normalizedSecret;
+    let displayCode: string;
     if (!user.totpRecoveryCode) {
-      user.totpRecoveryCode = createRecoveryCode();
+      displayCode = createRecoveryCode();
+      user.totpRecoveryCode = await encryptRecoveryCode(displayCode, env.JWT_SECRET);
+    } else {
+      displayCode = await decryptRecoveryCode(user.totpRecoveryCode, env.JWT_SECRET) ?? user.totpRecoveryCode;
     }
     user.updatedAt = new Date().toISOString();
     await storage.saveUser(user);
@@ -887,7 +891,7 @@ export async function handleSetTotpStatus(request: Request, env: Env, userId: st
       targetId: user.id,
       metadata: auditRequestMetadata(request),
     });
-    return jsonResponse({ enabled: true, recoveryCode: user.totpRecoveryCode, object: 'twoFactor' });
+    return jsonResponse({ enabled: true, recoveryCode: displayCode, object: 'twoFactor' });
   }
 
   if (body.enabled === false) {
@@ -942,15 +946,19 @@ export async function handleGetTotpRecoveryCode(request: Request, env: Env, user
   const valid = await auth.verifyPassword(currentHash, user.masterPasswordHash, user.email);
   if (!valid) return errorResponse('Invalid password', 400);
 
+  let displayCode: string;
   if (!user.totpRecoveryCode) {
-    user.totpRecoveryCode = createRecoveryCode();
+    displayCode = createRecoveryCode();
+    user.totpRecoveryCode = await encryptRecoveryCode(displayCode, env.JWT_SECRET);
     user.updatedAt = new Date().toISOString();
     await storage.saveUser(user);
+  } else {
+    displayCode = await decryptRecoveryCode(user.totpRecoveryCode, env.JWT_SECRET) ?? user.totpRecoveryCode;
   }
 
   return jsonResponse({
-    Code: user.totpRecoveryCode,
-    code: user.totpRecoveryCode,
+    Code: displayCode,
+    code: displayCode,
     Object: 'twoFactorRecover',
     object: 'twoFactorRecover',
   });
@@ -1009,13 +1017,15 @@ export async function handleRecoverTwoFactor(request: Request, env: Env): Promis
     return errorResponse('Invalid credentials or recovery code', 400);
   }
 
-  if (!recoveryCodeEquals(recoveryCode, user.totpRecoveryCode)) {
+  const storedPlain = await decryptRecoveryCode(user.totpRecoveryCode, env.JWT_SECRET);
+  if (!storedPlain || !recoveryCodeEquals(recoveryCode, storedPlain)) {
     await rateLimit.recordFailedLogin(recoverLimitKey);
     return errorResponse('Invalid credentials or recovery code', 400);
   }
 
+  const newPlainCode = createRecoveryCode();
   user.totpSecret = null;
-  user.totpRecoveryCode = createRecoveryCode();
+  user.totpRecoveryCode = await encryptRecoveryCode(newPlainCode, env.JWT_SECRET);
   user.securityStamp = generateUUID();
   user.updatedAt = new Date().toISOString();
   await storage.saveUser(user);
@@ -1035,7 +1045,7 @@ export async function handleRecoverTwoFactor(request: Request, env: Env): Promis
   return jsonResponse({
     success: true,
     twoFactorEnabled: false,
-    newRecoveryCode: user.totpRecoveryCode,
+    newRecoveryCode: newPlainCode,
     object: 'twoFactorRecovery',
   });
 }

@@ -38,10 +38,14 @@ fi
   [ -n "${WEBAUTHN_ALLOWED_ORIGINS:-}" ] && echo "WEBAUTHN_ALLOWED_ORIGINS=${WEBAUTHN_ALLOWED_ORIGINS}"
 } > /app/.dev.vars
 
-# 启动系统 cron 守护进程（用于定时触发 WebDAV 备份）
+# 确保挂载的 volume 对 node 用户可写（volume 初次创建时可能为 root 所有）
+chown -R node:node "$STATE_DIR"
+
+# 启动系统 cron 守护进程（需要 root，仅执行 curl 触发内部端点）
 cron
 
-exec /app/node_modules/.bin/wrangler dev \
+# 主进程以非 root 的 node 用户运行，gosu 保证信号正确转发
+exec gosu node /app/node_modules/.bin/wrangler dev \
   -c wrangler.docker.toml \
   --ip 0.0.0.0 \
   --port 8787 \

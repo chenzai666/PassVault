@@ -7,7 +7,7 @@ import { LIMITS } from '../config/limits';
 import { isTotpEnabled, verifyTotpToken } from '../utils/totp';
 import { createRefreshToken } from '../utils/jwt';
 import { readAuthRequestDeviceInfo } from '../utils/device';
-import { createRecoveryCode, recoveryCodeEquals } from '../utils/recovery-code';
+import { createRecoveryCode, recoveryCodeEquals, encryptRecoveryCode, decryptRecoveryCode } from '../utils/recovery-code';
 import { generateUUID } from '../utils/uuid';
 import { issueSendAccessToken } from './sends';
 import {
@@ -366,11 +366,12 @@ export async function handleToken(request: Request, env: Env): Promise<Response>
         normalizedTwoFactorProvider === String(TWO_FACTOR_PROVIDER_RECOVERY_CODE) ||
         normalizedTwoFactorProvider === String(TWO_FACTOR_PROVIDER_RECOVERY_CODE_ANDROID_REQUEST)
       ) {
-        if (!recoveryCodeEquals(normalizedTwoFactorToken, user.totpRecoveryCode)) {
+        const plainStored = await decryptRecoveryCode(user.totpRecoveryCode, env.JWT_SECRET);
+        if (!plainStored || !recoveryCodeEquals(normalizedTwoFactorToken, plainStored)) {
           return recordFailedTwoFactorAndBuildResponse(rateLimit, loginIdentifier);
         }
         user.totpSecret = null;
-        user.totpRecoveryCode = createRecoveryCode();
+        user.totpRecoveryCode = await encryptRecoveryCode(createRecoveryCode(), env.JWT_SECRET);
         user.updatedAt = new Date().toISOString();
         await storage.saveUser(user);
         await storage.deleteRefreshTokensByUserId(user.id);

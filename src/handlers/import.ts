@@ -163,12 +163,20 @@ export async function handleCiphersImport(request: Request, env: Env, userId: st
     }
   }
 
+  // 预加载用户现有文件夹 ID，用于验证客户端传入的 folderId 归属
+  const existingFolders = await storage.getFoldersByUserId(userId);
+  const ownedFolderIds = new Set(existingFolders.map(f => f.id));
+  // 同时将本次导入新建的文件夹 ID 纳入合法集合
+  for (const id of folderIdMap.values()) ownedFolderIds.add(id);
+
   // Create ciphers
   const cipherRows: Cipher[] = [];
   const cipherMapRows: Array<{ index: number; sourceId: string | null; id: string }> = [];
   for (let i = 0; i < ciphers.length; i++) {
     const c = ciphers[i];
-    const folderId = cipherFolderMap.get(i) || readAliasedImportProp<string | null>(c, ['folderId', 'FolderId']) || null;
+    const clientFolderId = readAliasedImportProp<string | null>(c, ['folderId', 'FolderId']) || null;
+    const validatedClientFolderId = clientFolderId && ownedFolderIds.has(clientFolderId) ? clientFolderId : null;
+    const folderId = cipherFolderMap.get(i) || validatedClientFolderId || null;
     const sourceIdRaw = String(c?.id ?? '').trim();
     const sourceId = sourceIdRaw || null;
     const login = readAliasedImportProp<any | null>(c, ['login', 'Login']);

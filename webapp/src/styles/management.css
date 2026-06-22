@@ -514,6 +514,7 @@
 .card.log-center-toolbar {
   @apply relative;
   margin-bottom: 0;
+  z-index: 10;
 }
 
 .log-mobile-subhead {

@@ -14,8 +14,9 @@ function jwtSecretUnsafeReason(env: Env): 'missing' | 'default' | 'too_short' | 
   return null;
 }
 
-function isImportBypassRequest(request: Request, path: string, method: string): boolean {
+function isImportBypassRequest(request: Request, path: string, method: string, userRole?: string): boolean {
   if (request.headers.get('X-NodeWarden-Import') !== '1') return false;
+  if (userRole !== 'admin') return false;
 
   if (method === 'POST') {
     if (path === '/api/ciphers/import') return true;
@@ -113,7 +114,7 @@ export async function handleRequest(request: Request, env: Env): Promise<Respons
       return errorResponse('Account is disabled', 403);
     }
 
-    if (!isImportBypassRequest(request, path, method)) {
+    if (!isImportBypassRequest(request, path, method, currentUser.role)) {
       const rateLimit = new RateLimitService(env.DB);
       const rateLimitCheck = await rateLimit.consumeBudget(`${userId}:api`, LIMITS.rateLimit.apiRequestsPerMinute);
       if (!rateLimitCheck.allowed) {

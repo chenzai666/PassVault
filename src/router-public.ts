@@ -1,5 +1,14 @@
 import { LIMITS } from './config/limits';
 import { DEFAULT_DEV_SECRET } from './types';
+
+function constantTimeEqual(a: string, b: string): boolean {
+  const encA = new TextEncoder().encode(a);
+  const encB = new TextEncoder().encode(b);
+  if (encA.length !== encB.length) return false;
+  let diff = 0;
+  for (let i = 0; i < encA.length; i++) diff |= encA[i] ^ encB[i];
+  return diff === 0;
+}
 import {
   handleAccessSend,
   handleAccessSendFile,
@@ -461,6 +470,8 @@ export async function handlePublicRoute(
   }
 
   if ((path === '/identity/accounts/recover-2fa' || path === '/api/accounts/recover-2fa') && method === 'POST') {
+    const blocked = await enforcePublicRateLimit('public-sensitive', LIMITS.rateLimit.sensitivePublicRequestsPerMinute);
+    if (blocked) return blocked;
     return handleRecoverTwoFactor(request, env);
   }
 
@@ -517,7 +528,7 @@ export async function handlePublicRoute(
   if (path === '/api/internal/cron-trigger' && method === 'POST') {
     const cronSecret = (env.CRON_SECRET || '').trim();
     const provided = (request.headers.get('X-Cron-Token') || '').trim();
-    if (!cronSecret || !provided || cronSecret !== provided) {
+    if (!cronSecret || !provided || !constantTimeEqual(cronSecret, provided)) {
       return new Response('Forbidden', { status: 403 });
     }
     const { runScheduledBackupIfDue } = await import('./handlers/backup');

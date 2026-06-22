@@ -1,8 +1,8 @@
 ﻿export const LIMITS = {
   auth: {
     // Access token lifetime in seconds.
-    // 访问令牌有效期（秒）。
-    accessTokenTtlSeconds: 7 * 24 * 3600,
+    // 访问令牌有效期（秒）。短期令牌配合 refresh token 自动续期，降低令牌泄露后的暴露窗口。
+    accessTokenTtlSeconds: 3600,
     // Refresh token lifetime in milliseconds.
     // 刷新令牌有效期（毫秒）。
     refreshTokenTtlMs: 365 * 24 * 60 * 60 * 1000,

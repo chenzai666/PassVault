@@ -773,7 +773,7 @@ export async function handlePutTwoFactorAuthenticator(request: Request, env: Env
 
   user.totpSecret = key;
   if (!user.totpRecoveryCode) {
-    user.totpRecoveryCode = await hashRecoveryCode(createRecoveryCode(), env.JWT_SECRET);
+    user.totpRecoveryCode = await hashRecoveryCode(createRecoveryCode(), env.RECOVERY_CODE_SECRET ?? env.JWT_SECRET);
   }
   user.updatedAt = new Date().toISOString();
   await storage.saveUser(user);
@@ -874,7 +874,7 @@ export async function handleSetTotpStatus(request: Request, env: Env, userId: st
     let displayCode: string | null = null;
     if (!user.totpRecoveryCode) {
       displayCode = createRecoveryCode();
-      user.totpRecoveryCode = await hashRecoveryCode(displayCode, env.JWT_SECRET);
+      user.totpRecoveryCode = await hashRecoveryCode(displayCode, env.RECOVERY_CODE_SECRET ?? env.JWT_SECRET);
     }
     user.updatedAt = new Date().toISOString();
     await storage.saveUser(user);
@@ -945,7 +945,7 @@ export async function handleGetTotpRecoveryCode(request: Request, env: Env, user
   if (!valid) return errorResponse('Invalid password', 400);
 
   const displayCode = createRecoveryCode();
-  user.totpRecoveryCode = await hashRecoveryCode(displayCode, env.JWT_SECRET);
+  user.totpRecoveryCode = await hashRecoveryCode(displayCode, env.RECOVERY_CODE_SECRET ?? env.JWT_SECRET);
   user.updatedAt = new Date().toISOString();
   await storage.saveUser(user);
 
@@ -1010,14 +1010,14 @@ export async function handleRecoverTwoFactor(request: Request, env: Env): Promis
     return errorResponse('Invalid credentials or recovery code', 400);
   }
 
-  if (!await verifyRecoveryCode(recoveryCode, user.totpRecoveryCode, env.JWT_SECRET)) {
+  if (!await verifyRecoveryCode(recoveryCode, user.totpRecoveryCode, env.RECOVERY_CODE_SECRET ?? env.JWT_SECRET, env.RECOVERY_CODE_SECRET ? env.JWT_SECRET : undefined)) {
     await rateLimit.recordFailedLogin(recoverLimitKey);
     return errorResponse('Invalid credentials or recovery code', 400);
   }
 
   const newPlainCode = createRecoveryCode();
   user.totpSecret = null;
-  user.totpRecoveryCode = await hashRecoveryCode(newPlainCode, env.JWT_SECRET);
+  user.totpRecoveryCode = await hashRecoveryCode(newPlainCode, env.RECOVERY_CODE_SECRET ?? env.JWT_SECRET);
   user.securityStamp = generateUUID();
   user.updatedAt = new Date().toISOString();
   await storage.saveUser(user);

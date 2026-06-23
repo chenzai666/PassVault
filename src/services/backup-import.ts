@@ -296,17 +296,19 @@ async function prepareImportedConfigRows(
 // - $rch$v1$（HMAC）：原样保留，无法逆推明文，同实例验证正常，跨实例用户下次查看时自动重生成
 // - $rc$v1$（旧 AES-GCM）：同实例解密后转 HMAC；跨实例解密失败则置 null
 // - 旧明文：直接计算 HMAC 后存储
-async function normalizeImportedUserRecoveryCodes(rows: SqlRow[], jwtSecret: string): Promise<SqlRow[]> {
+async function normalizeImportedUserRecoveryCodes(rows: SqlRow[], secret: string, fallbackSecret?: string): Promise<SqlRow[]> {
   return Promise.all(rows.map(async (row) => {
     const stored = typeof row.totp_recovery_code === 'string' ? row.totp_recovery_code : null;
     if (!stored) return { ...row };
-    const migrated = await migrateLegacyRecoveryCode(stored, jwtSecret);
+    const migrated = await migrateLegacyRecoveryCode(stored, secret, fallbackSecret);
     return { ...row, totp_recovery_code: migrated };
   }));
 }
 
 async function importPreparedBackupRows(db: D1Database, payload: BackupPayload['db'], env: Env): Promise<BackupPayload['db']> {
-  const normalizedUsers = await normalizeImportedUserRecoveryCodes(payload.users || [], env.JWT_SECRET);
+  const rcSecret = env.RECOVERY_CODE_SECRET ?? env.JWT_SECRET;
+  const rcFallback = env.RECOVERY_CODE_SECRET ? env.JWT_SECRET : undefined;
+  const normalizedUsers = await normalizeImportedUserRecoveryCodes(payload.users || [], rcSecret, rcFallback);
   const preparedDb: BackupPayload['db'] = {
     config: await prepareImportedConfigRows(env, payload.config || [], payload.users || []),
     users: normalizedUsers.map((row) => ({

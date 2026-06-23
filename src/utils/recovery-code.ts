@@ -96,23 +96,32 @@ export async function hashRecoveryCode(plainCode: string, jwtSecret: string): Pr
 }
 
 // 验证恢复码；兼容三种格式：$rch$v1$（HMAC）、$rc$v1$（旧 AES-GCM）、明文
+// fallbackSecret：设置了 RECOVERY_CODE_SECRET 时，以 JWT_SECRET 为 fallback 兼容旧哈希（迁移期）
 export async function verifyRecoveryCode(
   input: string,
   stored: string | null,
-  jwtSecret: string
+  secret: string,
+  fallbackSecret?: string
 ): Promise<boolean> {
   if (!stored) return false;
   const normalizedInput = normalizeRecoveryCode(input);
 
   if (stored.startsWith(HMAC_PREFIX)) {
     const storedHex = stored.slice(HMAC_PREFIX.length);
-    const key = await deriveHmacKey(jwtSecret);
+    const key = await deriveHmacKey(secret);
     const computed = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(normalizedInput));
-    return constantTimeEqual(toHex(new Uint8Array(computed)), storedHex);
+    if (constantTimeEqual(toHex(new Uint8Array(computed)), storedHex)) return true;
+    if (fallbackSecret) {
+      const fallbackKey = await deriveHmacKey(fallbackSecret);
+      const fallbackComputed = await crypto.subtle.sign('HMAC', fallbackKey, new TextEncoder().encode(normalizedInput));
+      return constantTimeEqual(toHex(new Uint8Array(fallbackComputed)), storedHex);
+    }
+    return false;
   }
 
   if (stored.startsWith(LEGACY_ENC_PREFIX)) {
-    const plain = await decryptLegacyAesCode(stored, jwtSecret);
+    const plain = await decryptLegacyAesCode(stored, secret)
+      ?? (fallbackSecret ? await decryptLegacyAesCode(stored, fallbackSecret) : null);
     if (!plain) return false;
     return recoveryCodeEquals(input, plain);
   }
@@ -121,13 +130,18 @@ export async function verifyRecoveryCode(
 }
 
 // 供 backup-import 迁移旧格式至 HMAC
-export async function migrateLegacyRecoveryCode(stored: string | null, jwtSecret: string): Promise<string | null> {
+export async function migrateLegacyRecoveryCode(
+  stored: string | null,
+  secret: string,
+  fallbackSecret?: string
+): Promise<string | null> {
   if (!stored) return null;
   if (stored.startsWith(HMAC_PREFIX)) return stored;
   if (stored.startsWith(LEGACY_ENC_PREFIX)) {
-    const plain = await decryptLegacyAesCode(stored, jwtSecret);
+    const plain = await decryptLegacyAesCode(stored, secret)
+      ?? (fallbackSecret ? await decryptLegacyAesCode(stored, fallbackSecret) : null);
     if (!plain) return null; // 跨实例密钥不同，无法解密，置空
-    return hashRecoveryCode(plain, jwtSecret);
+    return hashRecoveryCode(plain, secret);
   }
-  return hashRecoveryCode(stored, jwtSecret);
+  return hashRecoveryCode(stored, secret);
 }

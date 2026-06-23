@@ -12,6 +12,7 @@ export interface Env {
   ATTACHMENTS_KV?: KVNamespace;
   JWT_SECRET: string;
   CRON_SECRET?: string;
+  RECOVERY_CODE_SECRET?: string;
   WEBAUTHN_RP_ID?: string;
   WEBAUTHN_RP_NAME?: string;
   WEBAUTHN_ALLOWED_ORIGINS?: string;

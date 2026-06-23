@@ -366,11 +366,11 @@ export async function handleToken(request: Request, env: Env): Promise<Response>
         normalizedTwoFactorProvider === String(TWO_FACTOR_PROVIDER_RECOVERY_CODE) ||
         normalizedTwoFactorProvider === String(TWO_FACTOR_PROVIDER_RECOVERY_CODE_ANDROID_REQUEST)
       ) {
-        if (!await verifyRecoveryCode(normalizedTwoFactorToken, user.totpRecoveryCode, env.JWT_SECRET)) {
+        if (!await verifyRecoveryCode(normalizedTwoFactorToken, user.totpRecoveryCode, env.RECOVERY_CODE_SECRET ?? env.JWT_SECRET, env.RECOVERY_CODE_SECRET ? env.JWT_SECRET : undefined)) {
           return recordFailedTwoFactorAndBuildResponse(rateLimit, loginIdentifier);
         }
         user.totpSecret = null;
-        user.totpRecoveryCode = await hashRecoveryCode(createRecoveryCode(), env.JWT_SECRET);
+        user.totpRecoveryCode = await hashRecoveryCode(createRecoveryCode(), env.RECOVERY_CODE_SECRET ?? env.JWT_SECRET);
         user.updatedAt = new Date().toISOString();
         await storage.saveUser(user);
         await storage.deleteRefreshTokensByUserId(user.id);

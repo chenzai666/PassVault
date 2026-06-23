@@ -37,7 +37,7 @@ export const RECOMMENDED_PROVIDERS: RecommendedProvider[] = [
     capacity: '25G',
     protocol: 'webdav',
     signupUrl: 'https://infini-cloud.net/en/',
-    referralCode: '2HC5E',
+    referralCode: 'RSRQP',
   },
   {
     id: 'koofr',

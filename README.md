@@ -184,6 +184,34 @@ npm run deploy:kv
 
 ---
 
+## 安全模型
+
+### 服务端零知识
+
+所有 Vault 条目（密码、笔记、支付卡、身份信息）在**客户端加密后**才上传。服务端只存储密文，任何时候都无法读取你的明文数据。Master Password 仅用于客户端密钥派生（PBKDF2 / Argon2id），服务端存储的是派生后的验证哈希，不可用于解密 Vault。
+
+### 备份文件不含敏感凭证
+
+导出的备份（`.zip`）包含加密后的 Vault 数据，但**不包含**：
+
+- `JWT_SECRET` / `RECOVERY_CODE_SECRET` / `CRON_SECRET`
+- S3 / R2 访问密钥
+- 任何可用于解密 Vault 的服务端 secret
+
+备份文件附有 `HMAC-SHA256` 完整性签名，还原时自动校验。
+
+### 恢复码不可逆存储
+
+TOTP 恢复码以 `HMAC-SHA256`（格式：`$rch$v1$...`）存储，**服务端无法还原明文**。恢复码仅在首次生成时显示一次，之后无法再次查看——丢失后需要通过管理员重置 TOTP。
+
+### Refresh Token 与会话管理
+
+Refresh Token 是存储于数据库的随机不透明字符串，不依赖 `JWT_SECRET` 签名。如遇安全事件，可通过管理员接口 `DELETE /api/admin/sessions` 立即吊销所有活跃会话。
+
+详见 [`SECURITY.md`](./SECURITY.md) 和 [`docs/recovery-runbook.md`](./docs/recovery-runbook.md)。
+
+---
+
 ## 开源协议
 
 LGPL-3.0 License

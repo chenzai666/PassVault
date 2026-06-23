@@ -8,6 +8,7 @@ import {
   handleAdminSetUserStatus,
   handleAdminDeleteUser,
   handleAdminListAuditLogs,
+  handleAdminExportAuditLogs,
   handleAdminGetAuditLogSettings,
   handleAdminUpdateAuditLogSettings,
   handleAdminClearAuditLogs,
@@ -24,6 +25,10 @@ export async function handleAdminRoute(
 ): Promise<Response | null> {
   if (path === '/api/admin/users' && method === 'GET') {
     return handleAdminListUsers(request, env, actorUser);
+  }
+
+  if (path === '/api/admin/logs/export' && method === 'GET') {
+    return handleAdminExportAuditLogs(request, env, actorUser);
   }
 
   if (path === '/api/admin/logs' && method === 'GET') {

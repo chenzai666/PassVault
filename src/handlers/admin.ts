@@ -394,6 +394,62 @@ export async function handleAdminDeleteUser(
   return new Response(null, { status: 204 });
 }
 
+// GET /api/admin/logs/export — 导出审计日志（CSV 或 JSONL）
+export async function handleAdminExportAuditLogs(
+  request: Request,
+  env: Env,
+  actorUser: User
+): Promise<Response> {
+  if (!isAdmin(actorUser)) return errorResponse('Forbidden', 403);
+
+  const url = new URL(request.url);
+  const format = url.searchParams.get('format') === 'jsonl' ? 'jsonl' : 'csv';
+  const category = url.searchParams.get('category')?.trim() || null;
+  const level = url.searchParams.get('level')?.trim() || null;
+  const q = url.searchParams.get('q')?.trim().toLowerCase() || null;
+  const from = url.searchParams.get('from')?.trim() || null;
+  const to = url.searchParams.get('to')?.trim() || null;
+
+  const storage = new StorageService(env.DB);
+  const result = await storage.listAuditLogs({ limit: 10000, offset: 0, category, level, q, from, to });
+
+  const date = new Date().toISOString().slice(0, 10);
+  const filename = `passvault-audit-${date}.${format === 'jsonl' ? 'jsonl' : 'csv'}`;
+
+  if (format === 'jsonl') {
+    const body = result.logs.map(log => JSON.stringify(log)).join('\n');
+    return new Response(body, {
+      headers: {
+        'Content-Type': 'application/x-ndjson; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+      },
+    });
+  }
+
+  const csvEscape = (v: string | null | undefined): string => {
+    const s = v == null ? '' : String(v);
+    if (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r')) {
+      return `"${s.replace(/"/g, '""')}"`;
+    }
+    return s;
+  };
+
+  const csvHeaders = ['id','actorUserId','actorEmail','action','category','level','targetType','targetId','targetUserEmail','metadata','createdAt'];
+  const rows = result.logs.map(log =>
+    [log.id, log.actorUserId, log.actorEmail, log.action, log.category, log.level,
+     log.targetType, log.targetId, log.targetUserEmail, log.metadata, log.createdAt]
+      .map(csvEscape).join(',')
+  );
+  const body = '﻿' + [csvHeaders.join(','), ...rows].join('\r\n');
+
+  return new Response(body, {
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+    },
+  });
+}
+
 // DELETE /api/admin/sessions — 一键吊销所有 refresh token
 export async function handleAdminRevokeAllSessions(
   request: Request,

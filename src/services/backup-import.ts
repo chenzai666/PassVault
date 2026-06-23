@@ -7,6 +7,7 @@ import {
   parseBackupArchive,
   validateBackupPayloadContents,
 } from './backup-archive';
+import { decryptRecoveryCode, encryptRecoveryCode } from '../utils/recovery-code';
 
 // CONTRACT:
 // Restore is intentionally whitelist-based. Old backups may contain retired
@@ -291,10 +292,30 @@ async function prepareImportedConfigRows(
   return nextConfigRows;
 }
 
+// 恢复码归一化：
+// - 同实例恢复（JWT_SECRET 相同）：密文解密成功 → 原样保留
+// - 跨实例恢复（JWT_SECRET 不同）：密文解密失败 → 置 null，下次访问设置页自动重生成
+// - 旧明文备份（无 $rc$v1$ 前缀）：用当前 JWT_SECRET 重新加密后存储
+async function normalizeImportedUserRecoveryCodes(rows: SqlRow[], jwtSecret: string): Promise<SqlRow[]> {
+  return Promise.all(rows.map(async (row) => {
+    const stored = typeof row.totp_recovery_code === 'string' ? row.totp_recovery_code : null;
+    if (!stored) return { ...row };
+    const plain = await decryptRecoveryCode(stored, jwtSecret);
+    if (plain === null) {
+      return { ...row, totp_recovery_code: null };
+    }
+    if (!stored.startsWith('$rc$v1$')) {
+      return { ...row, totp_recovery_code: await encryptRecoveryCode(plain, jwtSecret) };
+    }
+    return { ...row };
+  }));
+}
+
 async function importPreparedBackupRows(db: D1Database, payload: BackupPayload['db'], env: Env): Promise<BackupPayload['db']> {
+  const normalizedUsers = await normalizeImportedUserRecoveryCodes(payload.users || [], env.JWT_SECRET);
   const preparedDb: BackupPayload['db'] = {
     config: await prepareImportedConfigRows(env, payload.config || [], payload.users || []),
-    users: cloneRows(payload.users || []).map((row) => ({
+    users: normalizedUsers.map((row) => ({
       ...row,
       verify_devices: row.verify_devices ?? 1,
     })),

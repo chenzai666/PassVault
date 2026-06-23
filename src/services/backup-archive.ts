@@ -48,6 +48,10 @@ export interface BackupManifest {
     largestObjectBytes: number;
   };
   attachmentBlobs?: BackupManifestAttachmentBlob[];
+  integrity?: {
+    alg: 'hmac-sha256';
+    dbHmac: string;
+  };
 }
 
 export interface BackupManifestAttachmentBlob {
@@ -126,6 +130,12 @@ function sanitizeConfigRowsForExport(rows: SqlRow[]): SqlRow[] {
 async function sha256Hex(bytes: Uint8Array): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', bytes);
   return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function hmacSha256Hex(data: Uint8Array, secret: string): Promise<string> {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, data);
+  return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 function getDateParts(date: Date, timeZone: string): string {
@@ -476,19 +486,27 @@ export async function buildBackupArchive(
     attachmentBlobs: includeAttachments ? attachmentBlobs : [],
   } satisfies BackupManifest;
 
+  const dbBytes = encoder.encode(JSON.stringify({
+    config: exportedConfigRows,
+    users: userRows,
+    domain_settings: domainSettingsRows,
+    user_revisions: revisionRows,
+    folders: folderRows,
+    ciphers: cipherRows,
+    attachments: exportedAttachmentRows,
+    webauthn_credentials: accountPasskeyRows,
+    trusted_two_factor_device_tokens: trustedTwoFactorTokenRows,
+  }, null, BACKUP_JSON_INDENT));
+
+  const dbHmac = await hmacSha256Hex(dbBytes, env.JWT_SECRET);
+  const manifestWithIntegrity: BackupManifest = {
+    ...manifestBase,
+    integrity: { alg: 'hmac-sha256', dbHmac },
+  };
+
   const files: Record<string, Uint8Array> = {
-    'manifest.json': encoder.encode(JSON.stringify(manifestBase, null, BACKUP_JSON_INDENT)),
-    'db.json': encoder.encode(JSON.stringify({
-      config: exportedConfigRows,
-      users: userRows,
-      domain_settings: domainSettingsRows,
-      user_revisions: revisionRows,
-      folders: folderRows,
-      ciphers: cipherRows,
-      attachments: exportedAttachmentRows,
-      webauthn_credentials: accountPasskeyRows,
-      trusted_two_factor_device_tokens: trustedTwoFactorTokenRows,
-    }, null, BACKUP_JSON_INDENT)),
+    'manifest.json': encoder.encode(JSON.stringify(manifestWithIntegrity, null, BACKUP_JSON_INDENT)),
+    'db.json': dbBytes,
   };
 
   await options.progress?.({
@@ -515,6 +533,6 @@ export async function buildBackupArchive(
   return {
     bytes,
     fileName,
-    manifest: manifestBase,
+    manifest: manifestWithIntegrity,
   };
 }

@@ -393,3 +393,17 @@ export async function handleAdminDeleteUser(
 
   return new Response(null, { status: 204 });
 }
+
+// DELETE /api/admin/sessions — 一键吊销所有 refresh token
+export async function handleAdminRevokeAllSessions(
+  request: Request,
+  env: Env,
+  actorUser: User
+): Promise<Response> {
+  if (!isAdmin(actorUser)) return errorResponse('Forbidden', 403);
+  const storage = new StorageService(env.DB);
+  const result = await env.DB.prepare('DELETE FROM refresh_tokens').run();
+  const deleted = (result.meta as Record<string, unknown>)?.changes as number ?? 0;
+  await writeAuditLog(storage, actorUser.id, 'admin.sessions.revoke_all', null, null, { deleted }, request);
+  return jsonResponse({ success: true, deleted });
+}

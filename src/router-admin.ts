@@ -11,6 +11,7 @@ import {
   handleAdminGetAuditLogSettings,
   handleAdminUpdateAuditLogSettings,
   handleAdminClearAuditLogs,
+  handleAdminRevokeAllSessions,
 } from './handlers/admin';
 import { handleAdminBackupRoute } from './router-admin-backup';
 
@@ -63,6 +64,10 @@ export async function handleAdminRoute(
   const adminUserDeleteMatch = path.match(/^\/api\/admin\/users\/([a-f0-9-]+)$/i);
   if (adminUserDeleteMatch && method === 'DELETE') {
     return handleAdminDeleteUser(request, env, actorUser, adminUserDeleteMatch[1]);
+  }
+
+  if (path === '/api/admin/sessions' && method === 'DELETE') {
+    return handleAdminRevokeAllSessions(request, env, actorUser);
   }
 
   return null;

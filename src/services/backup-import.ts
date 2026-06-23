@@ -7,7 +7,7 @@ import {
   parseBackupArchive,
   validateBackupPayloadContents,
 } from './backup-archive';
-import { decryptRecoveryCode, encryptRecoveryCode } from '../utils/recovery-code';
+import { migrateLegacyRecoveryCode } from '../utils/recovery-code';
 
 // CONTRACT:
 // Restore is intentionally whitelist-based. Old backups may contain retired
@@ -293,21 +293,15 @@ async function prepareImportedConfigRows(
 }
 
 // 恢复码归一化：
-// - 同实例恢复（JWT_SECRET 相同）：密文解密成功 → 原样保留
-// - 跨实例恢复（JWT_SECRET 不同）：密文解密失败 → 置 null，下次访问设置页自动重生成
-// - 旧明文备份（无 $rc$v1$ 前缀）：用当前 JWT_SECRET 重新加密后存储
+// - $rch$v1$（HMAC）：原样保留，无法逆推明文，同实例验证正常，跨实例用户下次查看时自动重生成
+// - $rc$v1$（旧 AES-GCM）：同实例解密后转 HMAC；跨实例解密失败则置 null
+// - 旧明文：直接计算 HMAC 后存储
 async function normalizeImportedUserRecoveryCodes(rows: SqlRow[], jwtSecret: string): Promise<SqlRow[]> {
   return Promise.all(rows.map(async (row) => {
     const stored = typeof row.totp_recovery_code === 'string' ? row.totp_recovery_code : null;
     if (!stored) return { ...row };
-    const plain = await decryptRecoveryCode(stored, jwtSecret);
-    if (plain === null) {
-      return { ...row, totp_recovery_code: null };
-    }
-    if (!stored.startsWith('$rc$v1$')) {
-      return { ...row, totp_recovery_code: await encryptRecoveryCode(plain, jwtSecret) };
-    }
-    return { ...row };
+    const migrated = await migrateLegacyRecoveryCode(stored, jwtSecret);
+    return { ...row, totp_recovery_code: migrated };
   }));
 }
 
@@ -702,6 +696,25 @@ async function importBackupRows(db: D1Database, payload: BackupPayload['db'], us
   );
 }
 
+async function verifyBackupIntegrity(parsed: { payload: { manifest: { integrity?: { alg: string; dbHmac: string } } }; files: Record<string, Uint8Array> }, env: Env, replaceExisting: boolean): Promise<void> {
+  const integrity = parsed.payload.manifest.integrity;
+  if (!integrity || integrity.alg !== 'hmac-sha256') return;
+  const dbJsonBytes = parsed.files['db.json'];
+  if (!dbJsonBytes) return;
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(env.JWT_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const computed = await crypto.subtle.sign('HMAC', key, dbJsonBytes);
+  const computedHex = Array.from(new Uint8Array(computed)).map(b => b.toString(16).padStart(2, '0')).join('');
+  const storedHex = integrity.dbHmac;
+  const enc = new TextEncoder();
+  const a = enc.encode(computedHex);
+  const b = enc.encode(storedHex);
+  let diff = a.length !== b.length ? 1 : 0;
+  for (let i = 0; i < Math.min(a.length, b.length); i++) diff |= a[i] ^ b[i];
+  if (diff !== 0 && !replaceExisting) {
+    throw new Error('Backup integrity check failed: HMAC mismatch. The backup may have been tampered with or was created on a different instance.');
+  }
+}
+
 export async function importBackupArchiveBytes(
   archiveBytes: Uint8Array,
   env: Env,
@@ -711,6 +724,7 @@ export async function importBackupArchiveBytes(
   fileName: string = 'passvault_backup.zip'
 ): Promise<BackupImportExecutionResult> {
   const parsed = parseBackupArchive(archiveBytes);
+  await verifyBackupIntegrity(parsed, env, replaceExisting);
   validateBackupPayloadContents(parsed.payload, parsed.files);
   const prepared = prepareImportPayloadForTarget(env, parsed.payload, parsed.files);
 
@@ -855,6 +869,7 @@ export async function importRemoteBackupArchiveBytes(
   fileName: string = 'passvault_backup.zip'
 ): Promise<BackupImportExecutionResult> {
   const parsed = parseBackupArchive(archiveBytes, { allowExternalAttachmentBlobs: true });
+  await verifyBackupIntegrity(parsed, env, replaceExisting);
   const preparedRemote = await prepareRemoteAttachmentPayload(env, parsed.payload, parsed.files, source);
   validateBackupPayloadContents(preparedRemote.payload, parsed.files, { allowExternalAttachmentBlobs: true });
 

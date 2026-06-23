@@ -7,7 +7,7 @@ import { jsonResponse, errorResponse } from '../utils/response';
 import { generateUUID } from '../utils/uuid';
 import { LIMITS } from '../config/limits';
 import { isTotpEnabled, verifyTotpToken } from '../utils/totp';
-import { createRecoveryCode, recoveryCodeEquals, encryptRecoveryCode, decryptRecoveryCode } from '../utils/recovery-code';
+import { createRecoveryCode, hashRecoveryCode, verifyRecoveryCode } from '../utils/recovery-code';
 import { buildAccountKeys } from '../utils/user-decryption';
 
 const TWO_FACTOR_PROVIDER_AUTHENTICATOR = 0;
@@ -773,7 +773,7 @@ export async function handlePutTwoFactorAuthenticator(request: Request, env: Env
 
   user.totpSecret = key;
   if (!user.totpRecoveryCode) {
-    user.totpRecoveryCode = await encryptRecoveryCode(createRecoveryCode(), env.JWT_SECRET);
+    user.totpRecoveryCode = await hashRecoveryCode(createRecoveryCode(), env.JWT_SECRET);
   }
   user.updatedAt = new Date().toISOString();
   await storage.saveUser(user);
@@ -871,12 +871,10 @@ export async function handleSetTotpStatus(request: Request, env: Env, userId: st
       return errorResponse('Invalid TOTP token', 400);
     }
     user.totpSecret = normalizedSecret;
-    let displayCode: string;
+    let displayCode: string | null = null;
     if (!user.totpRecoveryCode) {
       displayCode = createRecoveryCode();
-      user.totpRecoveryCode = await encryptRecoveryCode(displayCode, env.JWT_SECRET);
-    } else {
-      displayCode = await decryptRecoveryCode(user.totpRecoveryCode, env.JWT_SECRET) ?? user.totpRecoveryCode;
+      user.totpRecoveryCode = await hashRecoveryCode(displayCode, env.JWT_SECRET);
     }
     user.updatedAt = new Date().toISOString();
     await storage.saveUser(user);
@@ -946,15 +944,10 @@ export async function handleGetTotpRecoveryCode(request: Request, env: Env, user
   const valid = await auth.verifyPassword(currentHash, user.masterPasswordHash, user.email);
   if (!valid) return errorResponse('Invalid password', 400);
 
-  let displayCode: string;
-  if (!user.totpRecoveryCode) {
-    displayCode = createRecoveryCode();
-    user.totpRecoveryCode = await encryptRecoveryCode(displayCode, env.JWT_SECRET);
-    user.updatedAt = new Date().toISOString();
-    await storage.saveUser(user);
-  } else {
-    displayCode = await decryptRecoveryCode(user.totpRecoveryCode, env.JWT_SECRET) ?? user.totpRecoveryCode;
-  }
+  const displayCode = createRecoveryCode();
+  user.totpRecoveryCode = await hashRecoveryCode(displayCode, env.JWT_SECRET);
+  user.updatedAt = new Date().toISOString();
+  await storage.saveUser(user);
 
   return jsonResponse({
     Code: displayCode,
@@ -1017,15 +1010,14 @@ export async function handleRecoverTwoFactor(request: Request, env: Env): Promis
     return errorResponse('Invalid credentials or recovery code', 400);
   }
 
-  const storedPlain = await decryptRecoveryCode(user.totpRecoveryCode, env.JWT_SECRET);
-  if (!storedPlain || !recoveryCodeEquals(recoveryCode, storedPlain)) {
+  if (!await verifyRecoveryCode(recoveryCode, user.totpRecoveryCode, env.JWT_SECRET)) {
     await rateLimit.recordFailedLogin(recoverLimitKey);
     return errorResponse('Invalid credentials or recovery code', 400);
   }
 
   const newPlainCode = createRecoveryCode();
   user.totpSecret = null;
-  user.totpRecoveryCode = await encryptRecoveryCode(newPlainCode, env.JWT_SECRET);
+  user.totpRecoveryCode = await hashRecoveryCode(newPlainCode, env.JWT_SECRET);
   user.securityStamp = generateUUID();
   user.updatedAt = new Date().toISOString();
   await storage.saveUser(user);

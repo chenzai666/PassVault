@@ -67,7 +67,7 @@ const ru: Record<string, string> = {
   "txt_backup_recommend_infinicloud_step_2_prefix": "Открыть",
   "txt_backup_recommend_infinicloud_step_2_suffix": "и включите подключение приложений.",
   "txt_backup_recommend_infinicloud_step_3": "Используйте идентификатор подключения в качестве имени пользователя WebDAV и пароль приложения в качестве пароля WebDAV.",
-  "txt_backup_recommend_infinicloud_step_4": "Введите реферальный код 2HC5E в разделе «Реферальный бонус» внизу моей страницы, чтобы получить дополнительно 5 ГБ.",
+  "txt_backup_recommend_infinicloud_step_4": "Введите реферальный код RSRQP в разделе «Реферальный бонус» внизу моей страницы, чтобы получить дополнительно 5 ГБ.",
   "txt_backup_recommend_open_password": "Настройки пароля",
   "txt_backup_recommend_open_storage": "Открытое хранилище",
   "txt_backup_recommend_koofr_summary": "Нужен только адрес электронной почты. 10 ГБ бесплатно, и он может соединить Google Drive, OneDrive и Dropbox через WebDAV.",

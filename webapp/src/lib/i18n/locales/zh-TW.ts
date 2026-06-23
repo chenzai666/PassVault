@@ -66,7 +66,7 @@ const zhTW: Record<string, string> = {
   "txt_backup_recommend_infinicloud_step_2_prefix": "進入",
   "txt_backup_recommend_infinicloud_step_2_suffix": "，然後開啟 Turn on Apps Connection。",
   "txt_backup_recommend_infinicloud_step_3": "Connection ID 用作 WebDAV 用戶名，Apps Password 用作 WebDAV 密碼。",
-  "txt_backup_recommend_infinicloud_step_4": "在 My Page 最下面的 Referral Bonus 填入推薦碼 2HC5E，可額外獲得 5 GB。",
+  "txt_backup_recommend_infinicloud_step_4": "在 My Page 最下面的 Referral Bonus 填入推薦碼 RSRQP，可額外獲得 5 GB。",
   "txt_backup_recommend_open_password": "密碼設置",
   "txt_backup_recommend_open_storage": "打開儲存連接",
   "txt_backup_recommend_koofr_summary": "只需郵箱即可註冊使用。免費 10 GB，並且可以通過 WebDAV 接到 Google Drive、OneDrive、Dropbox。",

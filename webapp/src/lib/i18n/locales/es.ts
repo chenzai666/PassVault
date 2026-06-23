@@ -66,7 +66,7 @@ const es: Record<string, string> = {
   "txt_backup_recommend_infinicloud_step_2_prefix": "Abra",
   "txt_backup_recommend_infinicloud_step_2_suffix": "y active Apps Connection.",
   "txt_backup_recommend_infinicloud_step_3": "Use Connection ID como su nombre de usuario WebDAV y Apps Password como su contraseña WebDAV.",
-  "txt_backup_recommend_infinicloud_step_4": "Ingrese el código de referido 2HC5E en Referral Bonus al final de My Page para recibir 5 GB extra.",
+  "txt_backup_recommend_infinicloud_step_4": "Ingrese el código de referido RSRQP en Referral Bonus al final de My Page para recibir 5 GB extra.",
   "txt_backup_recommend_open_password": "Configuración de contraseña",
   "txt_backup_recommend_open_storage": "Abrir almacenamiento",
   "txt_backup_recommend_koofr_summary": "Solo se necesita una dirección de correo. 10 GB gratis, y puede conectar Google Drive, OneDrive y Dropbox a través de WebDAV.",

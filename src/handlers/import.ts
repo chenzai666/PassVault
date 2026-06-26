@@ -164,7 +164,7 @@ export async function handleCiphersImport(request: Request, env: Env, userId: st
   }
 
   // 预加载用户现有文件夹 ID，用于验证客户端传入的 folderId 归属
-  const existingFolders = await storage.getFoldersByUserId(userId);
+  const existingFolders = await storage.getAllFolders(userId);
   const ownedFolderIds = new Set(existingFolders.map(f => f.id));
   // 同时将本次导入新建的文件夹 ID 纳入合法集合
   for (const id of folderIdMap.values()) ownedFolderIds.add(id);

@@ -1,0 +1,40 @@
+name: Docker Hub 发布权限诊断
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检查目标仓库权限（不输出凭据）
+        env:
+          HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+          HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import os, json, base64, urllib.request, urllib.error
+          username = os.environ['HUB_USERNAME']
+          token = os.environ['HUB_TOKEN']
+          print('配置账号与 bats666 一致：' + str(username.strip().lower() == 'bats666'))
+          basic = base64.b64encode((username + ':' + token).encode()).decode()
+          url = 'https://auth.docker.io/token?service=registry.docker.io&scope=repository:bats666/passvault:pull,push'
+          req = urllib.request.Request(url, headers={'Authorization': 'Basic ' + basic})
+          try:
+              with urllib.request.urlopen(req, timeout=20) as resp:
+                  result = json.load(resp)
+          except urllib.error.HTTPError as exc:
+              print('Docker Hub 认证 HTTP 状态：' + str(exc.code))
+              raise SystemExit(1)
+          jwt = result.get('token') or result.get('access_token')
+          payload = jwt.split('.')[1]
+          claims = json.loads(base64.urlsafe_b64decode(payload + '=' * (-len(payload) % 4)))
+          actions = set()
+          for grant in claims.get('access', []):
+              if grant.get('type') == 'repository' and grant.get('name') == 'bats666/passvault':
+                  actions.update(grant.get('actions', []))
+          print('目标仓库 pull 权限：' + str('pull' in actions))
+          print('目标仓库 push 权限：' + str('push' in actions))
+          if 'push' not in actions:
+              raise SystemExit(1)
+          PY

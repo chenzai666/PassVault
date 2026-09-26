@@ -337,19 +337,15 @@ export async function handleRegister(request: Request, env: Env): Promise<Respon
   }
 
   try {
-    await storage.createUser(user);
+    if (!await storage.createUserWithInvite(user, inviteCode)) {
+      return errorResponse('Invite code is invalid or expired', 403);
+    }
   } catch (error) {
     const msg = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
     if (msg.includes('unique') || msg.includes('constraint')) {
       return errorResponse('Email already registered', 409);
     }
     throw error;
-  }
-
-  const inviteMarked = await storage.markInviteUsed(inviteCode, user.id);
-  if (!inviteMarked) {
-    await storage.deleteUserById(user.id);
-    return errorResponse('Invite code is invalid or expired', 403);
   }
 
   await writeAuditEvent(storage, {
@@ -368,7 +364,7 @@ export async function handleRegister(request: Request, env: Env): Promise<Respon
 // POST /api/accounts/password-hint
 export async function handleGetPasswordHint(request: Request, env: Env): Promise<Response> {
   const storage = new StorageService(env.DB);
-  const clientIdentifier = getClientIdentifier(request);
+  const clientIdentifier = getClientIdentifier(request, env);
   if (!clientIdentifier) {
     return errorResponse('Client IP is required', 403);
   }
@@ -980,7 +976,7 @@ export async function handleRecoverTwoFactor(request: Request, env: Env): Promis
   const email = String(body.email || body.username || '').trim().toLowerCase();
   const masterPasswordHash = String(body.masterPasswordHash || body.password || '').trim();
   const recoveryCode = normalizeRecoveryCodeInput(String(body.recoveryCode || body.twoFactorToken || body.recovery_code || ''));
-  const clientIdentifier = getClientIdentifier(request);
+  const clientIdentifier = getClientIdentifier(request, env);
   if (!clientIdentifier) {
     return errorResponse('Client IP is required', 403);
   }

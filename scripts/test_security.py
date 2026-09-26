@@ -1,259 +1,130 @@
-#!/usr/bin/env python3
-"""PassVault 安全测试套件 — 覆盖 IDOR、权限提升、token 重放、CSP 头、refresh token 行为"""
-
+"""对一次性本地测试实例执行权限、附件重放及会话回归测试。"""
 import json
-import time
+import os
+import sys
+import unittest
 import urllib.request
 import urllib.error
 import urllib.parse
 import uuid
-import hashlib
-import hmac
-import base64
 
-BASE = 'http://localhost:8787'
-PASS = '✅'
-FAIL = '❌'
+BASE = os.environ.get('PASSVAULT_TEST_URL', 'http://127.0.0.1:8787').rstrip('/')
+ENC = '2.' + '|'.join(['YQ==', 'Yg==', 'Yw=='])
 
-results = []
 
-def request(method, path, body=None, headers=None, token=None):
-    url = BASE + path
-    data = json.dumps(body).encode() if body is not None else None
-    h = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-    if headers:
-        h.update(headers)
+def request(method, path, body=None, token=None, raw=False):
+    url = path if path.startswith(BASE + '/') else BASE + path
+    if urllib.parse.urlsplit(url).netloc != urllib.parse.urlsplit(BASE).netloc:
+        raise ValueError('测试只允许访问指定实例')
+    headers = {'Origin': BASE, 'X-Real-IP': '192.0.2.10', 'Content-Type': 'application/json'}
     if token:
-        h['Authorization'] = f'Bearer {token}'
-    req = urllib.request.Request(url, data=data, headers=h, method=method)
+        headers['Authorization'] = 'Bearer ' + token
+    data = body if raw else (json.dumps(body).encode() if body is not None else None)
+    if raw:
+        headers['Content-Type'] = 'application/octet-stream'
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
     try:
-        with urllib.request.urlopen(req) as resp:
-            body_bytes = resp.read()
-            try:
-                return resp.status, json.loads(body_bytes), resp.headers
-            except Exception:
-                return resp.status, body_bytes.decode(), resp.headers
-    except urllib.error.HTTPError as e:
-        body_bytes = e.read()
+        response = urllib.request.urlopen(req, timeout=20)
+    except urllib.error.HTTPError as exc:
+        response = exc
+    with response:
+        content = response.read()
         try:
-            return e.code, json.loads(body_bytes), e.headers
-        except Exception:
-            return e.code, body_bytes.decode(), e.headers
+            result = json.loads(content)
+        except (ValueError, UnicodeDecodeError):
+            result = content
+        return response.status, result, response.headers
 
-def register_user(email, password='TestPass123!'):
-    uid = str(uuid.uuid4())[:8]
-    email = email.replace('@', f'+{uid}@') if '@' in email else f'{email}{uid}@example.com'
-    pw_hash = hashlib.sha256(password.encode()).hexdigest()
-    body = {
-        'name': f'Test {uid}',
-        'email': email,
-        'masterPasswordHash': pw_hash,
-        'masterPasswordHint': '',
-        'key': 'enckey-' + uid,
-        'kdf': 0,
-        'kdfIterations': 100000,
-    }
-    status, resp, _ = request('POST', '/api/accounts/register', body)
-    return email, pw_hash, uid
 
-def login_user(email, pw_hash):
-    body = {
-        'grant_type': 'password',
-        'username': email,
-        'password': pw_hash,
-        'scope': 'api offline_access',
-        'client_id': 'web',
-        'deviceIdentifier': str(uuid.uuid4()),
-        'deviceName': 'pytest',
-        'deviceType': 9,
-    }
-    status, resp, headers = request('POST', '/identity/connect/token', body,
-                                     headers={'Content-Type': 'application/x-www-form-urlencoded'})
-    # 需要 form encoded
-    data = urllib.parse.urlencode(body).encode()
-    req = urllib.request.Request(BASE + '/identity/connect/token', data=data,
-                                  headers={'Content-Type': 'application/x-www-form-urlencoded'}, method='POST')
-    try:
-        with urllib.request.urlopen(req) as resp:
-            return json.loads(resp.read())
-    except urllib.error.HTTPError as e:
-        return json.loads(e.read())
+def expect(method, path, body=None, token=None, statuses=(200,), raw=False):
+    status, result, headers = request(method, path, body, token, raw)
+    if status not in statuses:
+        raise AssertionError(f'{method} {path.split("?")[0]}: 预期 {statuses}，实际 {status}: {result}')
+    return result, headers
 
-def check(name, passed, detail=''):
-    sym = PASS if passed else FAIL
-    msg = f'{sym} {name}'
-    if detail:
-        msg += f' — {detail}'
-    print(msg)
-    results.append((name, passed))
-    return passed
 
-# ─────────────────────────────────────────────
-# 测试 0：健康检查
-# ─────────────────────────────────────────────
-def test_health():
-    status, resp, _ = request('GET', '/api/version')
-    check('服务健康检查', status == 200, f'status={status}')
+def register(invite=None):
+    email = f'{uuid.uuid4()}@example.test'
+    password_hash = uuid.uuid4().hex
+    body = {'email': email, 'name': '安全测试', 'masterPasswordHash': password_hash,
+            'key': ENC, 'keys': {'publicKey': 'test-only', 'encryptedPrivateKey': ENC},
+            'kdf': 0, 'kdfIterations': 600000}
+    if invite:
+        body['inviteCode'] = invite
+    expect('POST', '/api/accounts/register', body)
+    result, _ = expect('POST', '/identity/connect/token', {
+        'grant_type': 'password', 'username': email, 'password': password_hash,
+        'scope': 'api offline_access', 'client_id': 'web',
+        'deviceIdentifier': str(uuid.uuid4()), 'deviceName': '安全测试', 'deviceType': '9'})
+    if not result.get('access_token'):
+        raise AssertionError('未获得访问令牌')
+    return result
 
-# ─────────────────────────────────────────────
-# 测试 1：IDOR — 用户 A 访问用户 B 的 cipher
-# ─────────────────────────────────────────────
-def test_idor():
-    email_a, pw_a, _ = register_user('user_a@example.com')
-    email_b, pw_b, _ = register_user('user_b@example.com')
 
-    tok_a = login_user(email_a, pw_a).get('access_token')
-    tok_b = login_user(email_b, pw_b).get('access_token')
-    if not tok_a or not tok_b:
-        check('IDOR: 跨用户 cipher 访问', False, '登录失败，无法继续')
-        return
+class SecurityTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.admin = register()['access_token']
+        users = []
+        for _ in range(2):
+            invitation, _ = expect('POST', '/api/admin/invites', {}, cls.admin, statuses=(201,))
+            users.append(register(invitation['code']))
+        cls.a, cls.b = [u['access_token'] for u in users]
+        cls.refresh = users[0]['refresh_token']
+        cls.cipher, _ = expect('POST', '/api/ciphers', {
+            'type': 1, 'name': ENC, 'login': {'username': ENC, 'password': ENC}}, cls.b)
 
-    # 用户 B 创建一个 cipher
-    cipher_body = {
-        'type': 1,
-        'name': 'B的密码',
-        'login': {'username': 'b_user', 'password': 'b_secret'},
-    }
-    status, resp, _ = request('POST', '/api/ciphers', cipher_body, token=tok_b)
-    if status not in (200, 201) or not isinstance(resp, dict):
-        check('IDOR: 跨用户 cipher 访问', False, f'创建 cipher 失败 status={status}')
-        return
-    cipher_id = resp.get('id') or resp.get('Id')
+    def test_cross_user_cipher(self):
+        path = '/api/ciphers/' + self.cipher['id']
+        for method, body in [('GET', None), ('PUT', {'name': ENC}), ('DELETE', None)]:
+            status, _, _ = request(method, path, body, self.a)
+            self.assertIn(status, (403, 404))
+        expect('GET', path, token=self.b)
 
-    # 用户 A 尝试访问用户 B 的 cipher
-    status, resp, _ = request('GET', f'/api/ciphers/{cipher_id}', token=tok_a)
-    check('IDOR: 跨用户 cipher 访问', status in (403, 404),
-          f'期望 403/404，实际 {status}')
+    def test_foreign_folder(self):
+        folder, _ = expect('POST', '/api/folders', {'name': ENC}, self.a)
+        status, _, _ = request('POST', '/api/ciphers', {
+            'type': 1, 'name': ENC, 'folderId': folder['id']}, self.b)
+        self.assertEqual(status, 404)
 
-# ─────────────────────────────────────────────
-# 测试 2：Import folderId 越权
-# ─────────────────────────────────────────────
-def test_import_folder_priv_esc():
-    email_a, pw_a, _ = register_user('import_a@example.com')
-    email_b, pw_b, _ = register_user('import_b@example.com')
+    def test_attachment_replay(self):
+        cipher_id = self.cipher['id']
+        payload = b'encrypted-test-fixture'
+        attachment, _ = expect('POST', f'/api/ciphers/{cipher_id}/attachment/v2', {
+            'fileName': ENC, 'key': ENC, 'fileSize': len(payload)}, self.b)
+        expect('PUT', attachment['url'], payload, statuses=(201,), raw=True)
+        path = f'/api/ciphers/{cipher_id}/attachment/{attachment["attachmentId"]}'
+        status, _, _ = request('GET', path, token=self.a)
+        self.assertIn(status, (403, 404))
+        metadata, _ = expect('GET', path, token=self.b)
+        data, _ = expect('GET', metadata['url'])
+        self.assertEqual(data, payload)
+        status, _, _ = request('GET', metadata['url'])
+        self.assertEqual(status, 401)
 
-    tok_a = login_user(email_a, pw_a).get('access_token')
-    tok_b = login_user(email_b, pw_b).get('access_token')
-    if not tok_a or not tok_b:
-        check('Import folderId 越权', False, '登录失败')
-        return
+    def test_security_headers(self):
+        _, headers = expect('GET', '/api/version')
+        self.assertEqual(headers.get('X-Content-Type-Options'), 'nosniff')
+        self.assertEqual(headers.get('X-Frame-Options'), 'DENY')
+        script_policy = next(p.strip() for p in headers['Content-Security-Policy'].split(';') if p.strip().startswith('script-src'))
+        self.assertNotIn('unsafe-inline', script_policy)
 
-    # 用户 A 创建文件夹
-    status, folder_resp, _ = request('POST', '/api/folders', {'name': 'A的文件夹'}, token=tok_a)
-    if status not in (200, 201) or not isinstance(folder_resp, dict):
-        check('Import folderId 越权', False, f'创建文件夹失败 status={status}')
-        return
-    folder_id_a = folder_resp.get('id') or folder_resp.get('Id')
+    def test_refresh_and_admin_access(self):
+        status, _, _ = request('DELETE', '/api/admin/sessions', token=self.a)
+        self.assertEqual(status, 403)
+        token, _ = expect('POST', '/identity/connect/token', {
+            'grant_type': 'refresh_token', 'refresh_token': self.refresh})
+        self.assertTrue(token.get('access_token'))
+        self.assertNotEqual(token.get('refresh_token'), self.refresh)
 
-    # 用户 B 创建 cipher，folderId 指向 A 的文件夹
-    cipher_body = {
-        'type': 1,
-        'name': 'B的cipher试图用A的folder',
-        'folderId': folder_id_a,
-        'login': {'username': 'evil', 'password': 'evil'},
-    }
-    status, resp, _ = request('POST', '/api/ciphers', cipher_body, token=tok_b)
-    if status not in (200, 201) or not isinstance(resp, dict):
-        check('Import folderId 越权', False, f'创建 cipher 失败 status={status}')
-        return
+    def test_sync_isolation_and_cache_policy(self):
+        for _ in range(2):
+            own, headers = expect('GET', '/api/sync', token=self.b)
+            self.assertEqual(headers['Cache-Control'], 'private, no-store')
+            self.assertIn(self.cipher['id'], [c['id'] for c in own['ciphers']])
+            other, _ = expect('GET', '/api/sync', token=self.a)
+            self.assertNotIn(self.cipher['id'], [c['id'] for c in other['ciphers']])
 
-    # 验证返回的 cipher 中 folderId 是否被清空/忽略
-    returned_folder = resp.get('folderId') or resp.get('FolderId')
-    # 如果被设置成了 A 的文件夹 ID，则越权
-    not_escalated = (returned_folder != folder_id_a)
-    check('Import folderId 越权', not_escalated,
-          f'返回 folderId={returned_folder!r}，期望非 {folder_id_a!r}')
 
-# ─────────────────────────────────────────────
-# 测试 3：附件下载 token 重放（检查 token 是否单次有效）
-# ─────────────────────────────────────────────
-def test_attachment_token_replay():
-    # 该功能依赖 blob 存储（R2/KV），本地 dev 环境可能没有附件上传能力。
-    # 测试思路：向 /api/ciphers/:id/attachment/:attachmentId/renew-access-token 请求两次，
-    # 若第二次返回相同 token（说明没有轮换）则标记为潜在风险。
-    # 在无附件的环境下直接跳过并标记为 N/A。
-    print(f'⚠️  附件下载 token 重放 — 需要附件存储环境，本地 dev 跳过')
-    results.append(('附件下载 token 重放', None))
-
-# ─────────────────────────────────────────────
-# 测试 4：CSP 响应头
-# ─────────────────────────────────────────────
-def test_csp_headers():
-    status, resp, headers = request('GET', '/')
-    csp = None
-    if hasattr(headers, 'get'):
-        csp = headers.get('Content-Security-Policy') or headers.get('content-security-policy')
-    has_csp = bool(csp)
-    check('CSP 响应头存在', has_csp, f'CSP={csp!r}')
-    if has_csp:
-        # 检查关键指令
-        has_default = 'default-src' in csp
-        no_unsafe_inline = 'unsafe-inline' not in csp or 'script-src' not in csp
-        check('CSP 包含 default-src', has_default, csp[:120])
-
-# ─────────────────────────────────────────────
-# 测试 5：Refresh token 在 JWT_SECRET 轮换后仍有效（已知行为文档）
-# ─────────────────────────────────────────────
-def test_refresh_token_not_bound_to_jwt_secret():
-    """
-    已知行为：refresh token 是随机不透明字符串存储在 D1，不依赖 JWT_SECRET 签名。
-    因此轮换 JWT_SECRET 不会使 refresh token 失效。
-    缓解措施：使用 DELETE /api/admin/sessions 一键吊销所有 refresh token。
-    此测试仅验证 admin 吊销接口存在且响应正确。
-    """
-    # 尝试用非 admin 账户调用（应返回 403）
-    email, pw, _ = register_user('refresh_test@example.com')
-    tok = login_user(email, pw).get('access_token')
-    if not tok:
-        check('Admin 吊销接口 (非admin 返回 403)', False, '登录失败')
-        return
-    status, resp, _ = request('DELETE', '/api/admin/sessions', token=tok)
-    check('Admin 吊销接口 (非admin 返回 403)', status == 403,
-          f'status={status}')
-
-# ─────────────────────────────────────────────
-# 测试 6：CORS / X-Content-Type-Options 头
-# ─────────────────────────────────────────────
-def test_security_headers():
-    status, resp, headers = request('GET', '/api/version')
-    xcto = None
-    if hasattr(headers, 'get'):
-        xcto = headers.get('X-Content-Type-Options') or headers.get('x-content-type-options')
-    check('X-Content-Type-Options: nosniff', xcto == 'nosniff', f'值={xcto!r}')
-
-# ─────────────────────────────────────────────
-# 运行所有测试
-# ─────────────────────────────────────────────
 if __name__ == '__main__':
-    print('PassVault 安全测试套件')
-    print('=' * 50)
-    test_health()
-    print()
-    print('[测试 1] IDOR 跨用户访问')
-    test_idor()
-    print()
-    print('[测试 2] Import folderId 越权')
-    test_import_folder_priv_esc()
-    print()
-    print('[测试 3] 附件下载 token 重放')
-    test_attachment_token_replay()
-    print()
-    print('[测试 4] CSP 安全响应头')
-    test_csp_headers()
-    print()
-    print('[测试 5] Refresh token 吊销接口权限控制')
-    test_refresh_token_not_bound_to_jwt_secret()
-    print()
-    print('[测试 6] 安全响应头')
-    test_security_headers()
-    print()
-    print('=' * 50)
-    passed = sum(1 for _, r in results if r is True)
-    failed = sum(1 for _, r in results if r is False)
-    skipped = sum(1 for _, r in results if r is None)
-    print(f'结果: {passed} 通过 / {failed} 失败 / {skipped} 跳过')
-    if failed > 0:
-        print('失败项目:')
-        for name, r in results:
-            if r is False:
-                print(f'  {FAIL} {name}')
+    unittest.main(verbosity=2)

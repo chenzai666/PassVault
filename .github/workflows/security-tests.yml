@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_call:
+
+permissions:
+  contents: read
 
 jobs:
   security-tests:
@@ -25,28 +29,14 @@ jobs:
       - name: 安装依赖
         run: npm ci
 
-      - name: 启动开发服务器
-        run: |
-          JWT_SECRET="ci-test-secret-$(openssl rand -hex 16)-abcdefgh1234567890" \
-          npx wrangler dev --port 8787 --local &
-          echo $! > /tmp/wrangler.pid
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ci-placeholder
+      - name: 前后端类型检查
+        run: npm run typecheck
 
-      - name: 等待服务就绪
-        run: |
-          for i in $(seq 1 30); do
-            if curl -sf http://localhost:8787/api/version; then
-              echo "服务已就绪"
-              break
-            fi
-            echo "等待中... ($i/30)"
-            sleep 2
-          done
+      - name: 一次性本地存储安全回归
+        run: npm run test:security
 
-      - name: 运行安全测试
-        run: python3 scripts/test_security.py
+      - name: 生产依赖安全检查
+        run: npm audit --omit=dev --registry=https://registry.npmjs.org
 
-      - name: 停止服务器
-        if: always()
-        run: kill $(cat /tmp/wrangler.pid) 2>/dev/null || true
+      - name: 验证前端构建
+        run: npm run build

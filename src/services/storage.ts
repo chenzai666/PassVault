@@ -10,6 +10,7 @@ import {
 import {
   createFirstUser as createFirstStoredUser,
   createUser as createStoredUser,
+  createUserWithInvite as createStoredUserWithInvite,
   deleteUserById as deleteStoredUserById,
   getAllUsers as listStoredUsers,
   getUser as findStoredUserByEmail,
@@ -143,8 +144,8 @@ const STORAGE_SCHEMA_VERSION_KEY = 'schema.version';
 // Bump this whenever src/services/storage-schema.ts or migrations/0001_init.sql
 // changes. Existing D1 installs only rerun ensureStorageSchema() when this value
 // differs from config.schema.version.
-const STORAGE_SCHEMA_VERSION = '2026-06-12-auth-requests';
-const REQUIRED_SCHEMA_TABLES = ['webauthn_credentials', 'webauthn_challenges', 'auth_requests'] as const;
+const STORAGE_SCHEMA_VERSION = '2026-09-26-atomic-rate-limits';
+const REQUIRED_SCHEMA_TABLES = ['webauthn_credentials', 'webauthn_challenges', 'auth_requests', 'rate_limit_budgets'] as const;
 
 // D1-backed storage.
 // Contract:
@@ -281,6 +282,10 @@ export class StorageService {
 
   async createUser(user: User): Promise<void> {
     await createStoredUser(this.db, this.safeBind.bind(this), user);
+  }
+
+  async createUserWithInvite(user: User, code: string): Promise<boolean> {
+    return createStoredUserWithInvite(this.db, this.safeBind.bind(this), user, code);
   }
 
   async createFirstUser(user: User): Promise<boolean> {

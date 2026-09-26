@@ -63,7 +63,7 @@ services:
   passvault:
     image: bats666/passvault:latest
     ports:
-      - "8787:8787"
+      - "127.0.0.1:8787:8787"
     volumes:
       - passvault-data:/app/.wrangler/state
     restart: unless-stopped
@@ -76,6 +76,10 @@ docker compose up -d
 ```
 
 服务默认监听 `8787` 端口，首次启动会自动生成 JWT 密钥并持久保存，无需任何手动配置。
+
+Docker 端口默认仅发布到宿主机 `127.0.0.1`，请使用 HTTPS 反向代理提供外部访问。下方 nginx 示例适用于 nginx 直接接收客户端连接；它覆盖客户端 IP 头。Docker 配置仅信任 `X-Real-IP`，Workers 默认仅信任 Cloudflare 提供的 `CF-Connecting-IP`，不回退到客户端自报的 `X-Forwarded-For`。后端不得绕过可信代理直接暴露公网。
+
+如果 nginx 在其他容器中，请使用私有 Docker 网络访问服务；如果前方有 CDN 或负载均衡，应先限制可信代理地址，再配置真实 IP 恢复。
 
 ### 方式二：从源码构建
 
@@ -95,8 +99,9 @@ location = /api/internal/cron-trigger { return 404; }
 location ^~ / {
     proxy_pass http://127.0.0.1:8787;
     proxy_set_header Host $host;
+    proxy_set_header CF-Connecting-IP "";
     proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-For $remote_addr;
     proxy_set_header X-Forwarded-Host $host;
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_set_header Upgrade $http_upgrade;

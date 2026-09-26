@@ -5,8 +5,15 @@ on:
     types: [published]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
+  security-tests:
+    uses: ./.github/workflows/security-tests.yml
+
   build-and-push:
+    needs: security-tests
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
@@ -32,7 +39,9 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest
+            type=ref,event=branch
+            type=sha,format=long,prefix=sha-
+            type=raw,value=latest,enable=${{ github.event_name == 'release' }}
 
       - name: 构建并推送
         uses: docker/build-push-action@v6

@@ -12,6 +12,7 @@ export interface Env {
   ATTACHMENTS_KV?: KVNamespace;
   JWT_SECRET: string;
   CRON_SECRET?: string;
+  CLIENT_IP_HEADER?: 'CF-Connecting-IP' | 'X-Real-IP';
   RECOVERY_CODE_SECRET?: string;
   WEBAUTHN_RP_ID?: string;
   WEBAUTHN_RP_NAME?: string;

@@ -3,7 +3,7 @@ import { StorageService } from '../services/storage';
 import { errorResponse } from '../utils/response';
 import { cipherToResponse, isCipherResponseSyncCompatible, shouldPreserveRepairableCipherUris } from './ciphers';
 import { sendToResponse } from './sends';
-import { LIMITS } from '../config/limits';
+import { readSyncCache, writeSyncCache, SYNC_CLIENT_CACHE_CONTROL } from '../services/sync-cache';
 import {
   buildAccountKeys,
   buildUserDecryptionCompat,
@@ -32,16 +32,6 @@ function buildSyncCacheRequest(
     url.origin
   );
   return new Request(cacheUrl.toString(), { method: 'GET' });
-}
-
-async function readSyncCache(cacheRequest: Request): Promise<Response | null> {
-  const hit = await caches.default.match(cacheRequest);
-  if (!hit) return null;
-  return new Response(hit.body, hit);
-}
-
-async function writeSyncCache(cacheRequest: Request, response: Response): Promise<void> {
-  await caches.default.put(cacheRequest, response.clone());
 }
 
 // GET /api/sync
@@ -167,7 +157,7 @@ export async function handleSync(request: Request, env: Env, userId: string): Pr
     status: 200,
     headers: {
       'Content-Type': 'application/json',
-      'Cache-Control': `private, max-age=${Math.max(1, Math.floor(LIMITS.cache.syncResponseTtlMs / 1000))}`,
+      'Cache-Control': SYNC_CLIENT_CACHE_CONTROL,
     },
   });
   await writeSyncCache(cacheRequest, response);

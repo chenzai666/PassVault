@@ -230,7 +230,7 @@ export async function handleToken(request: Request, env: Env): Promise<Response>
   }
 
   const grantType = body.grant_type;
-  const clientIdentifier = getClientIdentifier(request);
+  const clientIdentifier = getClientIdentifier(request, env);
   if (!clientIdentifier) {
     return identityErrorResponse('Client IP is required', 'invalid_request', 403);
   }

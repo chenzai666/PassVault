@@ -283,9 +283,7 @@ export default defineConfig(({ mode }) => {
       target: 'esnext',
       chunkSizeWarningLimit: 800,
       rollupOptions: {
-        treeshake: {
-          preset: 'smallest',
-        },
+        treeshake: true,
         output: {
           manualChunks(id) {
             const normalized = id.replace(/\\/g, '/');

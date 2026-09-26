@@ -31,7 +31,7 @@ export async function handleRequest(request: Request, env: Env): Promise<Respons
   const url = new URL(request.url);
   const path = url.pathname;
   const method = request.method;
-  const clientId = getClientIdentifier(request);
+  const clientId = getClientIdentifier(request, env);
 
   async function enforcePublicRateLimit(
     category: string = 'public',

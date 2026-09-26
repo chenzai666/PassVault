@@ -1,8 +1,9 @@
 import { LIMITS } from '../config/limits';
+import type { Env } from '../types';
 
 // Rate limiting service.
 // - Login attempts: D1-backed (low volume, security-critical, needs cross-colo persistence).
-// - API budgets: Cloudflare Cache API (high volume, auto-expires, zero D1 writes).
+// - API budgets: D1 原子 UPSERT，避免并发请求覆盖计数。
 
 const CONFIG = {
   LOGIN_MAX_ATTEMPTS: LIMITS.rateLimit.loginMaxAttempts,
@@ -13,6 +14,7 @@ const CONFIG = {
 export class RateLimitService {
   private static loginIpTableReady = false;
   private static lastLoginIpCleanupAt = 0;
+  private static lastBudgetCleanupAt = 0;
 
   private static readonly PERIODIC_CLEANUP_PROBABILITY = LIMITS.rateLimit.cleanupProbability;
   private static readonly LOGIN_IP_CLEANUP_INTERVAL_MS = LIMITS.rateLimit.loginIpCleanupIntervalMs;
@@ -137,41 +139,33 @@ export class RateLimitService {
     await this.db.prepare('DELETE FROM login_attempts_ip WHERE ip = ?').bind(key).run();
   }
 
-  // Cache API-backed fixed-window rate limiter.
-  // Uses Cloudflare edge cache instead of D1 — zero database writes, auto-expires via TTL.
-  // Per-colo isolation is acceptable (matches Cloudflare's own rate limiting behaviour).
+  // 预算检查与消耗必须在同一条数据库语句内完成。
   private async consumeFixedWindowBudget(
     identifier: string,
     maxRequests: number,
     windowSeconds: number
   ): Promise<{ allowed: boolean; remaining: number; retryAfterSeconds?: number }> {
+    if (!Number.isSafeInteger(maxRequests) || maxRequests < 1 || !Number.isSafeInteger(windowSeconds) || windowSeconds < 1) {
+      throw new Error('Invalid rate limit budget');
+    }
     const nowSec = Math.floor(Date.now() / 1000);
     const windowStart = nowSec - (nowSec % windowSeconds);
     const windowEnd = windowStart + windowSeconds;
     const ttl = Math.max(1, windowEnd - nowSec);
 
-    const cache = await caches.open('rate-limit');
-    const cacheKey = new Request(`https://rl/${identifier}/${windowStart}`);
-
-    const cached = await cache.match(cacheKey);
-    let count = 0;
-    if (cached) {
-      count = parseInt(await cached.text(), 10) || 0;
+    const nowMs = Date.now();
+    if (this.shouldRunCleanup(RateLimitService.lastBudgetCleanupAt, 10 * 60 * 1000)) {
+      await this.db.prepare('DELETE FROM rate_limit_budgets WHERE expires_at <= ?').bind(nowSec).run();
+      RateLimitService.lastBudgetCleanupAt = nowMs;
     }
-
-    if (count >= maxRequests) {
+    const row = await this.db.prepare(
+      'INSERT INTO rate_limit_budgets(identifier, window_start, count, expires_at) VALUES(?, ?, 1, ?) ' +
+      'ON CONFLICT(identifier, window_start) DO UPDATE SET count = count + 1 WHERE count < ? RETURNING count'
+    ).bind(`${windowSeconds}:${identifier}`, windowStart, windowEnd, maxRequests).first<{ count: number }>();
+    if (!row) {
       return { allowed: false, remaining: 0, retryAfterSeconds: ttl };
     }
-
-    count++;
-    await cache.put(
-      cacheKey,
-      new Response(String(count), {
-        headers: { 'Cache-Control': `public, max-age=${ttl}` },
-      })
-    );
-
-    return { allowed: true, remaining: Math.max(0, maxRequests - count) };
+    return { allowed: true, remaining: Math.max(0, maxRequests - row.count) };
   }
 
   // General-purpose fixed-window budget.
@@ -330,22 +324,14 @@ function isLocalRequest(request: Request): boolean {
   return isLoopbackHost(request.headers.get('Host'));
 }
 
-export function getClientIdentifier(request: Request): string | null {
-  // Strict fallback order:
-  // 1) CF-Connecting-IP
-  // 2) X-Real-IP
-  // 3) first item of X-Forwarded-For
-  // If none are present/valid, treat client IP as unavailable.
-  const candidates: Array<string | null> = [
-    request.headers.get('CF-Connecting-IP'),
-    request.headers.get('X-Real-IP'),
-    request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() || null,
-  ];
-
-  for (const raw of candidates) {
-    if (!raw) continue;
+export function getClientIdentifier(request: Request, env: Pick<Env, 'CLIENT_IP_HEADER'> = {}): string | null {
+  // 只接受部署明确指定、由可信入口覆盖的头，禁止回退到客户端自报的 XFF。
+  const header = env.CLIENT_IP_HEADER || 'CF-Connecting-IP';
+  if (header !== 'CF-Connecting-IP' && header !== 'X-Real-IP') return null;
+  const raw = request.headers.get(header);
+  if (raw) {
     const normalized = normalizeClientIpForRateLimit(raw);
-    if (normalized) return normalized;
+    return normalized;
   }
 
   // Local dev (wrangler dev / localhost): allow a deterministic loopback identifier.

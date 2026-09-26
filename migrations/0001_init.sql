@@ -136,6 +136,16 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 );
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id);
 
+-- 与运行时建表保持一致；旧实例也可通过 0002 迁移补建。
+CREATE TABLE IF NOT EXISTS rate_limit_budgets (
+  identifier TEXT NOT NULL,
+  window_start INTEGER NOT NULL,
+  count INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,
+  PRIMARY KEY (identifier, window_start)
+);
+CREATE INDEX IF NOT EXISTS idx_rate_limit_budgets_expires ON rate_limit_budgets(expires_at);
+
 CREATE TABLE IF NOT EXISTS invites (
   code TEXT PRIMARY KEY,
   created_by TEXT NOT NULL,

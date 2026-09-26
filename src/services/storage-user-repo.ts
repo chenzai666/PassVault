@@ -101,6 +101,28 @@ export async function createUser(db: D1Database, safeBind: SafeBind, user: User)
   await saveUser(db, safeBind, user);
 }
 
+export async function createUserWithInvite(db: D1Database, safeBind: SafeBind, user: User, code: string): Promise<boolean> {
+  const now = new Date().toISOString();
+  const insert = safeBind(db.prepare(
+    `INSERT INTO users(${USER_SELECT_COLUMNS}) ` +
+    'SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ' +
+    "WHERE EXISTS (SELECT 1 FROM invites WHERE code = ? AND status = 'active' AND expires_at > ?)"
+  ), user.id, user.email.toLowerCase(), user.name, user.masterPasswordHint,
+  user.masterPasswordHash, user.key, user.privateKey, user.publicKey,
+  user.kdfType, user.kdfIterations, user.kdfMemory, user.kdfParallelism,
+  user.securityStamp, user.role, user.status, user.verifyDevices ? 1 : 0,
+  user.totpSecret, user.totpRecoveryCode, user.apiKey, user.createdAt, user.updatedAt, code, now);
+
+  // D1 batch 在同一事务内顺序执行；后续语句失败会回滚用户写入。
+  const consume = db.prepare(
+    "UPDATE invites SET status = 'used', used_by = ?, updated_at = ? " +
+    "WHERE code = ? AND status = 'active' AND expires_at > ? " +
+    'AND EXISTS (SELECT 1 FROM users WHERE id = ?)'
+  ).bind(user.id, now, code, now, user.id);
+  const results = await db.batch([insert, consume]);
+  return Number(results[0].meta.changes) === 1 && Number(results[1].meta.changes) === 1;
+}
+
 export async function createFirstUser(db: D1Database, safeBind: SafeBind, user: User): Promise<boolean> {
   const email = user.email.toLowerCase();
   const stmt = db.prepare(

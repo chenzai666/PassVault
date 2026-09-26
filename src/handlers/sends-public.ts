@@ -55,7 +55,7 @@ export async function handleAccessSend(request: Request, env: Env, accessId: str
   let sendPasswordLimitIpKey: string | null = null;
   let sendPasswordRateLimit: RateLimitService | null = null;
   if (send.passwordHash) {
-    const clientIdentifier = getClientIdentifier(request);
+    const clientIdentifier = getClientIdentifier(request, env);
     if (!clientIdentifier) {
       return errorResponse('Client IP is required', 403);
     }
@@ -129,7 +129,7 @@ export async function handleAccessSendFile(
   let sendPasswordLimitIpKey: string | null = null;
   let sendPasswordRateLimit: RateLimitService | null = null;
   if (send.passwordHash) {
-    const clientIdentifier = getClientIdentifier(request);
+    const clientIdentifier = getClientIdentifier(request, env);
     if (!clientIdentifier) {
       return errorResponse('Client IP is required', 403);
     }

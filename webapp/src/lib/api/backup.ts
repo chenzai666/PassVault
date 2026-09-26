@@ -238,7 +238,7 @@ export async function buildCompleteAdminBackupExport(
   });
   for (const attachment of manifest.attachmentBlobs || []) {
     const bytes = await downloadAdminBackupAttachmentBlob(authedFetch, attachment.blobName);
-    zipped[`attachments/${attachment.cipherId}/${attachment.attachmentId}.bin`] = bytes;
+    zipped[`attachments/${attachment.cipherId}/${attachment.attachmentId}.bin`] = new Uint8Array(bytes);
   }
 
   await onProgress?.({

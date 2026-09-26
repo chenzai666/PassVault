@@ -2,7 +2,7 @@ services:
   passvault:
     image: bats666/passvault:latest
     ports:
-      - "${PORT:-8787}:8787"
+      - "127.0.0.1:${PORT:-8787}:8787"
     volumes:
       - passvault-data:/app/.wrangler/state
     env_file:
